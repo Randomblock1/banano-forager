@@ -1,0 +1,15 @@
+doctype html
+head 
+    meta(charset="utf-8")
+    meta(name="robots" content="noindex")
+    meta(name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover")
+    link(rel='stylesheet' href='https://cdnjs.cloudflare.com/ajax/libs/bulma/0.9.4/css/bulma.min.css')
+    title Banano Scavenger
+body 
+    .section
+        article.message.is-success
+            .message-header
+                p Your Banano has been sent.
+            .message-body
+                p Transaction ID: #{transactionId}
+                p Sent to address #{address}

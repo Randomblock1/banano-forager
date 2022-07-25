@@ -1,0 +1,46 @@
+doctype html
+head
+    meta(charset="utf-8")   
+    meta(name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover")
+    link(rel='stylesheet' href='https://cdnjs.cloudflare.com/ajax/libs/bulma/0.9.4/css/bulma.min.css')
+    title Banano Scavenger
+    link(rel='stylesheet' href='https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.1/css/all.min.css')
+body
+    .section
+        .container
+            h1.title Banano Scavenger
+            h2.subtitle Funny faucet for funny monke coin
+            form(method='POST' action='/submit')
+                .box
+                    .field
+                        label.label Banano Address
+                        .control.has-icons-left
+                            input.input(name='address' type='text' placeholder='ban_36onoscopiewrea67bwky9m64891hy7pan7n1jgqf5ijcmmi5iubzqj4t7hi')
+                            span.icon.is-small.is-left
+                                i.fas.fa-qrcode
+                        p.help Don't worry if you mistype it. The faucet double-checks.
+
+                    .field
+                        label.label Banana Photo
+                        .file
+                            label.file-label
+                                input.file-input(name="image" type="file" accept="image/*")
+                                span.file-cta
+                                    span.file-icon
+                                        i.fa-solid.fa-image
+                                    span.file-label Choose a file…
+
+
+                    .control
+                        button.button.is-primary Submit
+
+                hr
+
+                footer.footer
+                    .container
+                        .level
+                            .level-left
+                                .level-item
+                                    a.title.is-4(href="/") banano-scavenger
+                            .level-right
+                                a.level-item(href="https://github.com/randomblock1/banano-scavenger") Source
