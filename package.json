@@ -1,5 +1,5 @@
 {
-    "name": "banano-scavenger",
+    "name": "banano-forager",
     "type": "module",
     "dependencies": {
         "@bananocoin/bananojs": "^2.5.17",

@@ -1,4 +1,4 @@
-# banano-scavenger
+# banano-forager
 
 ## is a funny faucet for the funny monkecoin
 
