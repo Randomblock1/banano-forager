@@ -90,8 +90,8 @@ declare module '@bananocoin/bananojs' {
           * @param prefix - the address prefix.
           * @returns returns the hash returned by the send.
           */
-         function sendFromPrivateKey(nodeApi: string, privateKey: string, destAccount: string, amountRaw: string, prefix: string): Promise<string>;
-          /**
+         function sendFromPrivateKey(nodeApi: object, privateKey: string, destAccount: string, amountRaw: Number, prefix: string): Promise<string>;
+         /**
          * Sends the amount to the banano account with a callback for success and failure.
          * @param seed - the seed to use to find the account.
          * @param seedIx - the index to use with the seed.
@@ -372,6 +372,12 @@ declare module '@bananocoin/bananojs' {
     }
 
     declare namespace bananodeApi {
+        /**
+         * Sets the API url.
+         * @param node - the url to use.
+         * @returns nothing.
+         */
+        function setUrl(node: string): any;
         /**
          * Get the balance, in raw, for an account.
          *

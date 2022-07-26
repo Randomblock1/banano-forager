@@ -116,11 +116,17 @@ async function imageClassification(image: object) {
   return predictions
 }
 
-console.log('INFO TIME!' + '\nNode:' + settings.node + '\nSeed:' + settings.privateKey + '\nFaucetReward:' + settings.faucetReward + '\nMaxQuota:' + settings.maxQuota)
-
-async function sleep(time: number) {
-  return await new Promise((resolve) => setTimeout(resolve, time))
-}
+console.log(
+  'INFO TIME!' +
+  '\nNode:' +
+  settings.node +
+  '\nSeed:' +
+  settings.privateKey +
+  '\nFaucetReward:' +
+  settings.faucetReward +
+  '\nMaxQuota:'+
+  settings.maxQuota
+  )
 
 // send webpages when accessed
 app.get('/', (req, res) => {
@@ -139,26 +145,32 @@ function filterFunction({ name, originalFilename, mimetype }: any) {
 const formidableOptions = {
   hashAlgorithm: 'sha256',
   keepExtensions: true,
-  maxFileSize: 2 * 1024 * 1024,
+  maxFileSize: 2 * 1024 * 1024, // 2MB
   filter: filterFunction
 }
 
-function banToRaw (ban: number) {
-  return String(ban * 100000000000000000000000000000)
+function banToRaw(ban: number) {
+  return Number(ban * 100000000000000000000000000000)
 }
 
-function sendBanano (address: string, amount: number) {
-  const sendresponse = bananojs.bananoUtil.sendFromPrivateKey(
-        settings.node,
-        settings.privateKey,
-        address,
-        banToRaw(amount),
-        "ban_",
+bananojs.bananodeApi.setUrl(settings.node)
+
+function sendBanano(address: string, amount: number) {
+  try {
+    const sendresponse = bananojs.bananoUtil.sendFromPrivateKey(
+      bananojs.bananodeApi,
+      settings.privateKey,
+      address,
+      banToRaw(amount),
+      "ban_",
     ).then(_ => {
       console.log('banano sendbanano response', response)
       return response
     })
-  return sendresponse
+  } catch (error: any) {
+    console.log('banano sendbanano error', error.message);
+  }
+  return response
 }
 
 // set up POST endpoint at /submit
@@ -195,22 +207,22 @@ app.post('/submit', (req, res, next) => {
       if (result[0].className === 'banana') {
         // send banano
         const txid = bananojs.bananoUtil.sendFromPrivateKey(
-            settings.node,
-            settings.privateKey,
-            address,
-            banToRaw(settings.faucetReward),
-            "ban_",
-        ).then(_ => {
+          bananojs.bananodeApi,
+          settings.privateKey,
+          address,
+          banToRaw(settings.faucetReward),
+          "ban_",
+        ).then((response) => {
           console.log('banano sendbanano response', response)
+          res.render('success', {
+            transactionId: response,
+            address: address,
+            amount: settings.faucetReward,
+            result: JSON.stringify(result)
+          })
           return response
         })
-        // show success
-        res.render('success', {
-          transactionId: txid,
-          address: address,
-          amount: settings.faucetReward,
-          result: JSON.stringify(result)
-        })
+        console.log(txid)
       }
     })
   }
