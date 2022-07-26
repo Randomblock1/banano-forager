@@ -9,10 +9,9 @@ import mobilenet from '@tensorflow-models/mobilenet'
 import * as tf from '@tensorflow/tfjs-node'
 
 const app = express()
-// use pug for rendering html
 app.set('view engine', 'pug')
 
-// parse args
+// SETUP CONFIGURATION VARIABLES //
 const args: any = yargs(process.argv.slice(2))
   .usage('Usage: $0 [options]')
   .example('$0', 'Start the app')
@@ -48,10 +47,10 @@ const args: any = yargs(process.argv.slice(2))
       fs.writeFileSync(
         yargs.file,
         `node: https://vault.banano.cc/api/node-api # which node to use
-privateKey: xxxxxxxxxxxxxxx # private seed
-faucetReward: 0.1 # how much a success is worth
+privateKey: xxxxxxxxxxxxxxx # private key
+faucetReward: 0.1 # how much a claim is worth
 maxQuota: 100 # max banano to send in a day
-cooldown: 60 # minutes between address requests`
+cooldown: 60 # minutes between claims`
       )
       console.log(
         'Successfully generated new config file.\nYour config is now:\n\n' +
@@ -64,16 +63,14 @@ cooldown: 60 # minutes between address requests`
   .alias('h', 'help')
   .version('version', '1.0').argv
 
-interface Settings {
+// parse settings.yml for settings
+let settings: {
   node: string
   privateKey: string
   faucetReward: number
-  maxQuota: string
-  cooldown: string
+  maxQuota: number
+  cooldown: number
 }
-
-// parse settings.yml for settings
-let settings: Settings
 try {
   settings = YAML.parse(fs.readFileSync(args.settings).toString())
 } catch (ENOENT) {
@@ -98,7 +95,15 @@ if (
   )
 }
 
-function verifyAddress(address: string) {
+const formidableOptions = {
+  hashAlgorithm: 'sha256',
+  keepExtensions: true,
+  maxFileSize: 2 * 1024 * 1024, // 2MB
+  filter: filterFunction
+}
+
+// FUNCTION DECLARATIONS //
+function validateAddress(address: string) {
   const validationResult: { valid: boolean, message: string } = bananojs.bananoUtil.getBananoAccountValidationInfo(address)
   if (validationResult.valid === true) {
     return true
@@ -106,28 +111,45 @@ function verifyAddress(address: string) {
     return validationResult.message
   }
 }
-let mobilenetModel: any
-tf.ready().then(_ => {
-  mobilenetModel = mobilenet.load({ version: 2, alpha: 1 })
-})
 
 async function imageClassification(image: object) {
   const predictions = (await mobilenetModel).classify(image)
   return predictions
 }
 
+function filterFunction({ name, originalFilename, mimetype }: any) {
+  // keep only images
+  return mimetype && mimetype.includes('image')
+}
+
+function banToRaw(ban: number) {
+  // turns out you can split banano, a lot
+  return Number(ban * 100000000000000000000000000000)
+}
+
+// INITIALIZATION //
+// set node
+bananojs.bananodeApi.setUrl(settings.node)
+
+// load mobilenet model once ready
+let mobilenetModel: any
+tf.ready().then(_ => {
+  mobilenetModel = mobilenet.load({ version: 2, alpha: 1 })
+})
+
 console.log(
   'INFO TIME!' +
-  '\nNode:' +
+  '\nNode: ' +
   settings.node +
-  '\nSeed:' +
+  '\nSeed: ' +
   settings.privateKey +
-  '\nFaucetReward:' +
+  '\nFaucetReward: ' +
   settings.faucetReward +
-  '\nMaxQuota:'+
+  '\nMaxQuota: ' +
   settings.maxQuota
-  )
+)
 
+// SETUP ROUTES //
 // send webpages when accessed
 app.get('/', (req, res) => {
   res.render('index')
@@ -137,60 +159,31 @@ app.get('/faucet', (req, res) => {
   res.render('faucet')
 })
 
-function filterFunction({ name, originalFilename, mimetype }: any) {
-  // keep only images
-  return mimetype && mimetype.includes('image')
-}
-
-const formidableOptions = {
-  hashAlgorithm: 'sha256',
-  keepExtensions: true,
-  maxFileSize: 2 * 1024 * 1024, // 2MB
-  filter: filterFunction
-}
-
-function banToRaw(ban: number) {
-  return Number(ban * 100000000000000000000000000000)
-}
-
-bananojs.bananodeApi.setUrl(settings.node)
-
-function sendBanano(address: string, amount: number) {
-  try {
-    const sendresponse = bananojs.bananoUtil.sendFromPrivateKey(
-      bananojs.bananodeApi,
-      settings.privateKey,
-      address,
-      banToRaw(amount),
-      "ban_",
-    ).then(_ => {
-      console.log('banano sendbanano response', response)
-      return response
-    })
-  } catch (error: any) {
-    console.log('banano sendbanano error', error.message);
-  }
-  return response
-}
+app.get('/fail', (req, res) => {
+  res.render('fail')
+})
 
 // set up POST endpoint at /submit
 app.post('/submit', (req, res, next) => {
   const form = formidable(formidableOptions)
+  // runs every time someone submits a form
   form.parse(req, (err, fields, files: any) => {
     if (err) {
       next(err)
       return
     }
+
     console.log('Received data: ' + JSON.stringify(fields) + ' from ' + req.ip)
     console.log('Received file: ' + files.image + ' from ' + req.ip)
     console.log(files.image[0].filepath)
 
-    // sanitize address
-    const address = sanitize(
+    // sanitize address (just in case!)
+    const claimAddress = sanitize(
       fields.address.toString()
     )
+
     // verify address
-    const addressVerification = verifyAddress(address)
+    const addressVerification = validateAddress(claimAddress)
     if (addressVerification !== true) {
       res.render('fail', {
         errorReason: 'Invalid address, reason: ' + addressVerification
@@ -200,34 +193,44 @@ app.post('/submit', (req, res, next) => {
     }
     // process image
     const imageBuffer = fs.readFileSync(files.image[0].filepath)
-    const image = tf.node.decodeImage(imageBuffer)
-    let classificationResult
-    imageClassification(image).then((result) => {
-      console.log(result)
-      if (result[0].className === 'banana') {
+    // delete after processing
+    fs.rmSync(files.image[0].filepath)
+    // convert image to tensor
+    const tensorImage = tf.node.decodeImage(imageBuffer)
+    // the fun stuff!
+    imageClassification(tensorImage).then((classificationResult) => {
+      console.log('Got an image. Looks like ' + classificationResult[0])
+      if (classificationResult[0].className === 'banana') {
         // send banano
-        const txid = bananojs.bananoUtil.sendFromPrivateKey(
+        bananojs.bananoUtil.sendFromPrivateKey(
           bananojs.bananodeApi,
           settings.privateKey,
-          address,
+          claimAddress,
           banToRaw(settings.faucetReward),
           "ban_",
-        ).then((response) => {
-          console.log('banano sendbanano response', response)
+        ).then((txid) => {
+          console.log(
+            'Sent ' +
+            settings.faucetReward +
+            ' banano to ' +
+            claimAddress +
+            ' with TXID ' +
+            txid
+          )
+          // finally, render success page
           res.render('success', {
-            transactionId: response,
-            address: address,
+            transactionId: txid,
+            address: claimAddress,
             amount: settings.faucetReward,
-            result: JSON.stringify(result)
+            result: JSON.stringify(classificationResult)
           })
-          return response
         })
-        console.log(txid)
       }
     })
-  }
-  )
+  })
 })
+
+// GO TIME! //
 app.listen(80, () => {
   console.log('Server listening on http://localhost:80 ...')
 })
