@@ -41,8 +41,7 @@ const args: any = yargs(process.argv.slice(2))
         yargs.file,
         `node: https://vault.banano.cc/api/node-api # which node to use
 privateKey: xxxxxxxxxxxxxxx # private key
-faucetReward: 0.1 # how much a claim is worth
-maxQuota: 100 # max banano to send in a day
+maxReward: 50 # max ban from a claim
 cooldown: 60 # minutes between claims`
       )
       console.log(
@@ -60,8 +59,7 @@ cooldown: 60 # minutes between claims`
 let settings: {
   node: string
   privateKey: string
-  faucetReward: number
-  maxQuota: number
+  maxReward: number
   cooldown: number
 }
 try {
@@ -79,8 +77,7 @@ try {
 if (
   (settings.node ||
     settings.privateKey ||
-    settings.faucetReward ||
-    settings.maxQuota ||
+    settings.maxReward ||
     settings.cooldown) === undefined
 ) {
   throw new Error(
@@ -137,9 +134,7 @@ console.log(
   '\nSeed: ' +
   settings.privateKey +
   '\nFaucetReward: ' +
-  settings.faucetReward +
-  '\nMaxQuota: ' +
-  settings.maxQuota
+  settings.maxReward
 )
 
 // SETUP ROUTES //
@@ -186,25 +181,29 @@ app.post('/submit', (req, res, next) => {
     }
     // process image
     const imageBuffer = fs.readFileSync(files.image[0].filepath)
+    // TODO: store perceptual hash and real hash in database
+    // TODO: check if image is original
     // delete after processing
     fs.rmSync(files.image[0].filepath)
     // convert image to tensor
     const tensorImage = node.decodeImage(imageBuffer)
     // the fun stuff!
     imageClassification(tensorImage).then((classificationResult) => {
-      console.log('Got an image. Looks like ' + classificationResult[0])
+      console.log('Got an image. Looks like ', classificationResult[0])
       if (classificationResult[0].className === 'banana') {
+        // reward based on confidence, may reduce impact of false positives
+        const reward = Number((settings.maxReward * classificationResult[0].probability).toFixed(2))
         // send banano
         bananojs.bananoUtil.sendFromPrivateKey(
           bananojs.bananodeApi,
           settings.privateKey,
           claimAddress,
-          banToRaw(settings.faucetReward),
+          banToRaw(reward),
           'ban_'
         ).then((txid) => {
           console.log(
             'Sent ' +
-            settings.faucetReward +
+            reward +
             ' banano to ' +
             claimAddress +
             ' with TXID ' +
@@ -214,7 +213,7 @@ app.post('/submit', (req, res, next) => {
           res.render('success', {
             transactionId: txid,
             address: claimAddress,
-            amount: settings.faucetReward,
+            amount: reward,
             result: JSON.stringify(classificationResult)
           })
         })
