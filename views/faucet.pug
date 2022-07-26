@@ -4,7 +4,8 @@ head
     meta(name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover")
     link(rel='stylesheet' href='https://cdnjs.cloudflare.com/ajax/libs/bulma/0.9.4/css/bulma.min.css')
     title Banano Scavenger
-    link(rel='stylesheet' href='https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.1/css/all.min.css')
+    link(rel='stylesheet' href='https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.2/css/all.min.css')
+    link(rel="stylesheet" type="text/css" href="https://unpkg.com/bulma-prefers-dark")
 body
     .section
         .container
@@ -22,13 +23,15 @@ body
 
                     .field
                         label.label Banana Photo
-                        .file
+                        #fileinput.file.has-name.is-fullwidth
                             label.file-label
                                 input.file-input(name="image" type="file" accept="image/*")
                                 span.file-cta
                                     span.file-icon
                                         i.fa-solid.fa-image
-                                    span.file-label Choose a file…
+                                    span.file-label Choose a file (2MB max)…
+                                span.file-name
+                        p.help Images are only temporarily stored, but we keep some info to prevent duplicates.
 
 
                     .control
@@ -44,3 +47,12 @@ body
                                     a.title.is-4(href="/") banano-scavenger
                             .level-right
                                 a.level-item(href="https://github.com/randomblock1/banano-scavenger") Source
+
+script.
+        const fileInput = document.querySelector('#fileinput input[type=file]');
+        fileInput.onchange = () => {
+            if (fileInput.files.length > 0) {
+            const fileName = document.querySelector('#fileinput .file-name');
+            fileName.textContent = fileInput.files[0].name;
+            }
+        }

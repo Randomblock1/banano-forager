@@ -1,15 +1,15 @@
 # The ramblings and voices inside my head
 
-Okay, so I guess I'm doing this. First, I need to make sure that I can even detect the banana, so I guess I'll start with Tensorflow.js.
+Okay, so I guess I'm doing this. First, I need to make sure that I can even detect the banana, so I guess I'll start with Tensorflow.js. DONE! Wow, that wasn't so bad. It's also pretty quick.
 
-It needs to be a web application that sends the image to the server, and the server does the rest.
+It needs to be a web application that sends the image to the server, and the server does the rest. DONE! That part works.
 
 Then, I'll need to check and make sure the images are original. Reverse image lookup, then phashing and storing to prevent duplicates.
 
 Finally, I need to actually send the banano. I guess I'll use [bananojs](https://github.com/BananoCoin/bananojs).
 
 ```js
-// NOTE TO SELF THIS IS THE FUNCTION WE NEED TO USE
+// NOTE TO SELF THIS IS THE FUNCTION I NEED TO USE
 commands['bsendraw'] = async (privateKey, destAccount, amountRaw) => {
   const config = configs.banano;
   bananodeApi.setUrl(config.bananodeUrl);

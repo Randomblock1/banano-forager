@@ -24,7 +24,7 @@ declare module '@bananocoin/bananojs' {
         function setBananodeApiUrl(url: string): undefined;
     }
 
-    declare namespace BananoUtil {
+    declare namespace bananoUtil {
         /**
          * converts amount from decimal to bananoParts.
          * @param decimalAmount - the decimal amount of bananos.
@@ -82,6 +82,16 @@ declare module '@bananocoin/bananojs' {
          */
         function sendAmountToNanoAccountWithRepresentativeAndPrevious(seed: string, seedIx: string, destAccount: string, amountRaw: string, representative: string, previousHash: string): Promise<string>;
         /**
+          * Sends the amount to the nano account with a callback for success and failure.
+          * @param nodeApi - the node to use.
+          * @param privateKey - the private key.
+          * @param destAccount - the destination account.
+          * @param amountRaw - the amount to send, in raw.
+          * @param prefix - the address prefix.
+          * @returns returns the hash returned by the send.
+          */
+         function sendFromPrivateKey(nodeApi: string, privateKey: string, destAccount: string, amountRaw: string, prefix: string): Promise<string>;
+          /**
          * Sends the amount to the banano account with a callback for success and failure.
          * @param seed - the seed to use to find the account.
          * @param seedIx - the index to use with the seed.
@@ -340,7 +350,7 @@ declare module '@bananocoin/bananojs' {
         function getNanoAccountValidationInfo(account: string): AccountValidationInfo;
     }
 
-    declare namespace DepositUtil {
+    declare namespace depositUtil {
         /**
          * Recieve deposits for a nano account with a given seed.
          * @param seed - the seed to use to find the account.
@@ -361,7 +371,7 @@ declare module '@bananocoin/bananojs' {
         function receiveBananoDepositsForSeed(seed: string, seedIx: string, representative: string, specificPendingBlockHash: string): Promise<object>;
     }
 
-    declare namespace BananodeApi {
+    declare namespace bananodeApi {
         /**
          * Get the balance, in raw, for an account.
          *

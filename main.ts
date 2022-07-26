@@ -1,10 +1,10 @@
 import formidable from 'formidable'
-import express from 'express'
+import express, { response } from 'express'
 import yargs from 'yargs'
 import YAML from 'yaml'
 import fs from 'fs'
 import sanitize from 'sanitize-filename'
-import bananojs from '@bananocoin/bananojs';
+import bananojs from '@bananocoin/bananojs'
 import mobilenet from '@tensorflow-models/mobilenet'
 import * as tf from '@tensorflow/tfjs-node'
 
@@ -48,7 +48,7 @@ const args: any = yargs(process.argv.slice(2))
       fs.writeFileSync(
         yargs.file,
         `node: https://vault.banano.cc/api/node-api # which node to use
-privateSeed: xxxxxxxxxxxxxxx # private seed
+privateKey: xxxxxxxxxxxxxxx # private seed
 faucetReward: 0.1 # how much a success is worth
 maxQuota: 100 # max banano to send in a day
 cooldown: 60 # minutes between address requests`
@@ -66,8 +66,8 @@ cooldown: 60 # minutes between address requests`
 
 interface Settings {
   node: string
-  privateSeed: string
-  faucetReward: string
+  privateKey: string
+  faucetReward: number
   maxQuota: string
   cooldown: string
 }
@@ -88,7 +88,7 @@ try {
 // make sure all needed settings are set (todo: check for correct types)
 if (
   (settings.node ||
-    settings.privateSeed ||
+    settings.privateKey ||
     settings.faucetReward ||
     settings.maxQuota ||
     settings.cooldown) === undefined
@@ -99,7 +99,7 @@ if (
 }
 
 function verifyAddress(address: string) {
-  const validationResult: { valid: boolean, message: string } = bananojs.BananoUtil.getBananoAccountValidationInfo(address)
+  const validationResult: { valid: boolean, message: string } = bananojs.bananoUtil.getBananoAccountValidationInfo(address)
   if (validationResult.valid === true) {
     return true
   } else {
@@ -116,7 +116,7 @@ async function imageClassification(image: object) {
   return predictions
 }
 
-console.log('INFO TIME!' + '\nNode:' + settings.node + '\nSeed:' + settings.privateSeed + '\nFaucetReward:' + settings.faucetReward + '\nMaxQuota:' + settings.maxQuota)
+console.log('INFO TIME!' + '\nNode:' + settings.node + '\nSeed:' + settings.privateKey + '\nFaucetReward:' + settings.faucetReward + '\nMaxQuota:' + settings.maxQuota)
 
 async function sleep(time: number) {
   return await new Promise((resolve) => setTimeout(resolve, time))
@@ -127,8 +127,8 @@ app.get('/', (req, res) => {
   res.render('index')
 })
 
-app.get('/form', (req, res) => {
-  res.render('form')
+app.get('/faucet', (req, res) => {
+  res.render('faucet')
 })
 
 function filterFunction({ name, originalFilename, mimetype }: any) {
@@ -143,21 +143,23 @@ const formidableOptions = {
   filter: filterFunction
 }
 
-// function sendBanano (address: string, amount: number) {
-//   try {
-//     const response = await BananoUtil.sendFromPrivateKey(
-//         bananodeApi,
-//         privateKey,
-//         destAccount,
-//         amountRaw,
-//         config.prefix,
-//     );
-//     console.log('banano sendbanano response', response);
-//   } catch (error) {
-//     console.log('banano sendbanano error', error.message);
-//   }
-//   return //txid
-// }
+function banToRaw (ban: number) {
+  return String(ban * 100000000000000000000000000000)
+}
+
+function sendBanano (address: string, amount: number) {
+  const sendresponse = bananojs.bananoUtil.sendFromPrivateKey(
+        settings.node,
+        settings.privateKey,
+        address,
+        banToRaw(amount),
+        "ban_",
+    ).then(_ => {
+      console.log('banano sendbanano response', response)
+      return response
+    })
+  return sendresponse
+}
 
 // set up POST endpoint at /submit
 app.post('/submit', (req, res, next) => {
@@ -191,8 +193,20 @@ app.post('/submit', (req, res, next) => {
     imageClassification(image).then((result) => {
       console.log(result)
       if (result[0].className === 'banana') {
+        // send banano
+        const txid = bananojs.bananoUtil.sendFromPrivateKey(
+            settings.node,
+            settings.privateKey,
+            address,
+            banToRaw(settings.faucetReward),
+            "ban_",
+        ).then(_ => {
+          console.log('banano sendbanano response', response)
+          return response
+        })
+        // show success
         res.render('success', {
-          transactionId: 'TODO',
+          transactionId: txid,
           address: address,
           amount: settings.faucetReward,
           result: JSON.stringify(result)

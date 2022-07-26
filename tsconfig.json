@@ -3,9 +3,9 @@
     "display": "Node 16",
   
     "compilerOptions": {
-      "lib": ["es2021"],
-      "module": "ES6",
-      "target": "ES6",
+      "lib": ["es2022"],
+      "module": "es2022",
+      "target": "es2022",
   
       "strict": true,
       "esModuleInterop": true,
