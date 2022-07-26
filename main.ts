@@ -6,7 +6,7 @@ import fs from 'fs'
 import sanitize from 'sanitize-filename'
 import bananojs from '@bananocoin/bananojs'
 import mobilenet from '@tensorflow-models/mobilenet'
-import * as tf from '@tensorflow/tfjs-node'
+import { ready, node } from '@tensorflow/tfjs-node'
 
 const app = express()
 app.set('view engine', 'pug')
@@ -119,7 +119,7 @@ async function imageClassification (image: object) {
 
 function filterFunction ({ name, originalFilename, mimetype }: any) {
   // keep only images
-  return mimetype && mimetype.includes('image')
+  return mimetype?.includes('image')
 }
 
 function banToRaw (ban: number) {
@@ -133,7 +133,7 @@ bananojs.bananodeApi.setUrl(settings.node)
 
 // load mobilenet model once ready
 let mobilenetModel: any
-tf.ready().then(_ => {
+ready().then(_ => {
   mobilenetModel = mobilenet.load({ version: 2, alpha: 1 })
 })
 
@@ -188,7 +188,7 @@ app.post('/submit', (req, res, next) => {
       res.render('fail', {
         errorReason: 'Invalid address, reason: ' + addressVerification
       })
-      console.log('recieved invalid address: ' + addressVerification)
+      console.log('received invalid address: ' + addressVerification)
       return
     }
     // process image
@@ -196,7 +196,7 @@ app.post('/submit', (req, res, next) => {
     // delete after processing
     fs.rmSync(files.image[0].filepath)
     // convert image to tensor
-    const tensorImage = tf.node.decodeImage(imageBuffer)
+    const tensorImage = node.decodeImage(imageBuffer)
     // the fun stuff!
     imageClassification(tensorImage).then((classificationResult) => {
       console.log('Got an image. Looks like ' + classificationResult[0])
