@@ -98,8 +98,8 @@ if (
   )
 }
 
-function verifyAddress (address: string) {
-  const validationResult: {valid: boolean, message: string} = bananojs.getBananoAccountValidationInfo(address)
+function verifyAddress(address: string) {
+  const validationResult: { valid: boolean, message: string } = bananojs.BananoUtil.getBananoAccountValidationInfo(address)
   if (validationResult.valid === true) {
     return true
   } else {
@@ -111,14 +111,14 @@ tf.ready().then(_ => {
   mobilenetModel = mobilenet.load({ version: 2, alpha: 1 })
 })
 
-async function imageClassification (image: object) {
+async function imageClassification(image: object) {
   const predictions = (await mobilenetModel).classify(image)
   return predictions
 }
 
 console.log('INFO TIME!' + '\nNode:' + settings.node + '\nSeed:' + settings.privateSeed + '\nFaucetReward:' + settings.faucetReward + '\nMaxQuota:' + settings.maxQuota)
 
-async function sleep (time: number) {
+async function sleep(time: number) {
   return await new Promise((resolve) => setTimeout(resolve, time))
 }
 
@@ -131,7 +131,7 @@ app.get('/form', (req, res) => {
   res.render('form')
 })
 
-function filterFunction ({ name, originalFilename, mimetype }: any) {
+function filterFunction({ name, originalFilename, mimetype }: any) {
   // keep only images
   return mimetype && mimetype.includes('image')
 }
@@ -191,12 +191,13 @@ app.post('/submit', (req, res, next) => {
     imageClassification(image).then((result) => {
       console.log(result)
       if (result[0].className === 'banana') {
-      res.render('success', {
-        transactionId: 'TODO',
-        address: address,
-        amount: settings.faucetReward,
-        result: JSON.stringify(result)
-      })}
+        res.render('success', {
+          transactionId: 'TODO',
+          address: address,
+          amount: settings.faucetReward,
+          result: JSON.stringify(result)
+        })
+      }
     })
   }
   )
