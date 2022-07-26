@@ -1,5 +1,5 @@
 import formidable from 'formidable'
-import express, { response } from 'express'
+import express from 'express'
 import yargs from 'yargs'
 import YAML from 'yaml'
 import fs from 'fs'
@@ -103,7 +103,7 @@ const formidableOptions = {
 }
 
 // FUNCTION DECLARATIONS //
-function validateAddress(address: string) {
+function validateAddress (address: string) {
   const validationResult: { valid: boolean, message: string } = bananojs.bananoUtil.getBananoAccountValidationInfo(address)
   if (validationResult.valid === true) {
     return true
@@ -112,17 +112,17 @@ function validateAddress(address: string) {
   }
 }
 
-async function imageClassification(image: object) {
+async function imageClassification (image: object) {
   const predictions = (await mobilenetModel).classify(image)
   return predictions
 }
 
-function filterFunction({ name, originalFilename, mimetype }: any) {
+function filterFunction ({ name, originalFilename, mimetype }: any) {
   // keep only images
   return mimetype && mimetype.includes('image')
 }
 
-function banToRaw(ban: number) {
+function banToRaw (ban: number) {
   // turns out you can split banano, a lot
   return Number(ban * 100000000000000000000000000000)
 }
@@ -207,7 +207,7 @@ app.post('/submit', (req, res, next) => {
           settings.privateKey,
           claimAddress,
           banToRaw(settings.faucetReward),
-          "ban_",
+          'ban_'
         ).then((txid) => {
           console.log(
             'Sent ' +
