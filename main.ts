@@ -21,13 +21,6 @@ const args: any = yargs(process.argv.slice(2))
     describe: 'YAML file to load settings from',
     type: 'string'
   })
-  .option('dry-run', {
-    alias: 'd',
-    default: false,
-    describe:
-      "Don't actually send any banano",
-    type: 'boolean'
-  })
   .command(
     'generate',
     'make a new config file',
