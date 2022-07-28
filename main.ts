@@ -73,12 +73,12 @@ try {
     ' generate`'
   )
 }
-// make sure all needed settings are set (todo: check for correct types)
+// make sure all needed settings are set
 if (
-  (settings.node ||
-    settings.privateKey ||
-    settings.maxReward ||
-    settings.cooldown) === undefined
+  !((settings.node &&
+    settings.privateKey &&
+    settings.maxReward &&
+    settings.cooldown) ?? '')
 ) {
   throw new Error(
     'Invalid settings, make sure every required setting is defined'
@@ -135,7 +135,7 @@ console.log(
   '\nSeed: ' +
   settings.privateKey +
   '\nFaucetReward: ' +
-  settings.maxReward
+  settings.maxReward.toString()
 )
 
 // SETUP ROUTES //
@@ -204,7 +204,7 @@ app.post('/submit', (req, res, next) => {
         ).then((txid) => {
           console.log(
             'Sent ' +
-            reward +
+            reward.toString() +
             ' banano to ' +
             claimAddress +
             ' with TXID ' +
