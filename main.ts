@@ -193,7 +193,7 @@ app.post('/submit', (req, res, next) => {
     // delete after processing
     fs.rmSync(files.image[0].filepath)
     // convert image to tensor
-    const tensorImage = decodeImage(imageBuffer, 3, undefined, true)
+    const tensorImage = decodeImage(imageBuffer, 3, undefined, false)
     // the fun stuff!
     imageClassification(tensorImage).then((classificationResult) => {
       console.log('Got an image. Looks like ', classificationResult[0])
