@@ -85,7 +85,7 @@ if (!(
   )
 }
 
-const formidableOptions = {
+const formidableOptions: formidable.Options = {
   hashAlgorithm: 'sha256',
   keepExtensions: true,
   maxFileSize: 2 * 1024 * 1024, // 2MB
@@ -108,9 +108,10 @@ async function imageClassification (image: object) {
   return predictions
 }
 
-function filterFunction ({ _, __, mimetype }: any) {
+function filterFunction ({ name, originalFilename, mimetype }: formidable.Part): boolean {
   // keep only images
-  return mimetype?.includes('image')
+  const file = { name, originalFilename, mimetype }
+  return Boolean(file.mimetype?.includes('image'))
 }
 
 function banToRaw (ban: number) {
