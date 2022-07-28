@@ -193,7 +193,7 @@ app.post('/submit', (req, res, next) => {
     // delete after processing
     fs.rmSync(files.image[0].filepath)
     // convert image to tensor
-    const tensorImage = decodeImage(imageBuffer)
+    const tensorImage = decodeImage(imageBuffer, 3, undefined, true)
     // the fun stuff!
     imageClassification(tensorImage).then((classificationResult) => {
       console.log('Got an image. Looks like ', classificationResult[0])
@@ -201,7 +201,7 @@ app.post('/submit', (req, res, next) => {
         // reward based on confidence, may reduce impact of false positives
         const reward = Number((settings.maxReward * classificationResult[0].probability).toFixed(2))
         // send banano
-        bananojs.bananoUtil.sendFromPrivateKey(
+        const sendPromise = bananojs.bananoUtil.sendFromPrivateKey(
           bananojs.bananodeApi,
           settings.privateKey,
           claimAddress,
@@ -216,14 +216,21 @@ app.post('/submit', (req, res, next) => {
             ' with TXID ' +
             txid
           )
-          // finally, render success page
           res.render('success', {
             transactionId: txid,
             address: claimAddress,
             amount: reward,
             result: JSON.stringify(classificationResult)
           })
+          sendPromise.catch((err) => {
+            console.log('Error sending banano: ' + err)
+            res.render('fail', { errorReason: err })
+          })
         })
+      } else {
+        // reject image
+        console.log(claimAddress + ' did not submit a banana')
+        res.render('fail', { errorReason: 'Not a banana. Results: ' + JSON.stringify(classificationResult) })
       }
     })
   })
