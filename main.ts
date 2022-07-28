@@ -135,11 +135,11 @@ const mobilenetModel: Promise<mobilenet.MobileNet> = tensorflowGetReady().then(_
 })
 
 console.log(
-  'INFO TIME!' +
-  '\nNode: ' +
+  'Node: ' +
   settings.node +
   '\nSeed: ' +
-  settings.privateKey +
+  settings.privateKey.slice(0, 10) +
+  '...' +
   '\nFaucetReward: ' +
   settings.maxReward.toString()
 )
@@ -201,7 +201,7 @@ app.post('/submit', (req, res, next) => {
         // reward based on confidence, may reduce impact of false positives
         const reward = Number((settings.maxReward * classificationResult[0].probability).toFixed(2))
         // send banano
-        const sendPromise = bananojs.bananoUtil.sendFromPrivateKey(
+        bananojs.bananoUtil.sendFromPrivateKey(
           bananojs.bananodeApi,
           settings.privateKey,
           claimAddress,
@@ -222,21 +222,25 @@ app.post('/submit', (req, res, next) => {
             amount: reward,
             result: JSON.stringify(classificationResult)
           })
-          sendPromise.catch((err) => {
-            console.log('Error sending banano: ' + err)
-            res.render('fail', { errorReason: err })
-          })
+        }).catch((err) => {
+          // catch banano send errors
+          console.log('Error sending banano: ' + err)
+          res.render('fail', { errorReason: err })
         })
       } else {
         // reject image
         console.log(claimAddress + ' did not submit a banana')
         res.render('fail', { errorReason: 'Not a banana. Results: ' + JSON.stringify(classificationResult) })
       }
+    }).catch((err) => {
+      // catch imageClassification errors
+      console.log('Error processing image from ' + claimAddress + ': ' + err)
+      res.render('fail', { errorReason: err })
     })
   })
 })
 
 // GO TIME! //
 app.listen(80, () => {
-  console.log('Server listening on http://localhost:80 ...')
+  console.log('Server listening on http://localhost:80...\n')
 })
