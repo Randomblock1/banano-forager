@@ -34,7 +34,7 @@ const args: any = yargs(process.argv.slice(2))
     },
     function (yargs) {
       // generate new valid settings yaml
-      if (fs.existsSync(yargs.file)) {
+      if (fs.existsSync(yargs.file) != null) {
         console.log('File already exists. Moving to old_' + yargs.file)
         fs.cpSync(yargs.file, 'old_' + yargs.file)
       }
@@ -118,7 +118,7 @@ function filterFunction ({ name, originalFilename, mimetype }: formidable.Part):
   // keep only images
   const file = { name, originalFilename, mimetype }
   const regex = /^image\/(png|jpeg|bmp|gif)$/
-  return Boolean(file.mimetype?.match(regex))
+  return Boolean(regex.test(file.mimetype || ''))
 }
 
 function banToRaw (ban: number): number {
@@ -164,7 +164,7 @@ app.post('/submit', (req, res, next) => {
   const form = formidable(formidableOptions)
   // runs every time someone submits a form
   form.parse(req, (err, fields, files: any) => {
-    if (err) {
+    if (err != null) {
       next(err)
       return
     }
