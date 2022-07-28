@@ -162,7 +162,7 @@ app.get('/fail', (req, res) => {
 app.post('/submit', (req, res, next) => {
   const form = formidable(formidableOptions)
   // runs every time someone submits a form
-  form.parse(req, (err: Error, fields, files: any) => {
+  form.parse(req, (err, fields, files: any) => {
     if (err) {
       next(err)
       return
