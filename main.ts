@@ -94,7 +94,7 @@ const formidableOptions: formidable.Options = {
 }
 
 // FUNCTION DECLARATIONS //
-function validateAddress (address: string) {
+function validateAddress (address: string): true | string {
   const validationResult: { valid: boolean, message: string } = bananojs.bananoUtil.getBananoAccountValidationInfo(address)
   if (validationResult.valid) {
     return true
@@ -108,7 +108,7 @@ interface ClassificationResult {
   probability: number
 }
 
-async function imageClassification (image: object): Promise<Array<ClassificationResult>> {
+async function imageClassification (image: object): Promise<ClassificationResult[]> {
   // return predictions from an image
   const predictions = (await mobilenetModel).classify(image)
   return predictions
@@ -120,7 +120,7 @@ function filterFunction ({ name, originalFilename, mimetype }: formidable.Part):
   return Boolean(file.mimetype?.includes('image'))
 }
 
-function banToRaw (ban: number) {
+function banToRaw (ban: number): number {
   // turns out you can split banano, a lot
   return Number(ban * 100000000000000000000000000000)
 }
@@ -162,7 +162,7 @@ app.get('/fail', (req, res) => {
 app.post('/submit', (req, res, next) => {
   const form = formidable(formidableOptions)
   // runs every time someone submits a form
-  form.parse(req, (err, fields, files: any) => {
+  form.parse(req, (err: Error, fields, files: any) => {
     if (err) {
       next(err)
       return
