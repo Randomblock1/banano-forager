@@ -6,7 +6,8 @@ import fs from 'fs'
 import sanitize from 'sanitize-filename'
 import bananojs from '@bananocoin/bananojs'
 import mobilenet from '@tensorflow-models/mobilenet'
-import { ready, node } from '@tensorflow/tfjs-node'
+import { ready as tensorflowGetReady } from '@tensorflow/tfjs-node'
+import { decodeImage } from '@tensorflow/tfjs-node/dist/image.js'
 
 const app = express()
 app.set('view engine', 'pug')
@@ -102,7 +103,12 @@ function validateAddress (address: string) {
   }
 }
 
-async function imageClassification (image: object) {
+interface ClassificationResult {
+  className: string
+  probability: number
+}
+
+async function imageClassification (image: object): Promise<Array<ClassificationResult>> {
   // return predictions from an image
   const predictions = (await mobilenetModel).classify(image)
   return predictions
@@ -124,9 +130,8 @@ function banToRaw (ban: number) {
 bananojs.bananodeApi.setUrl(settings.node)
 
 // load mobilenet model once ready
-let mobilenetModel: any
-ready().then(_ => {
-  mobilenetModel = mobilenet.load({ version: 2, alpha: 1 })
+const mobilenetModel: Promise<mobilenet.MobileNet> = tensorflowGetReady().then(_ => {
+  return mobilenet.load({ version: 2, alpha: 1 })
 })
 
 console.log(
@@ -188,7 +193,7 @@ app.post('/submit', (req, res, next) => {
     // delete after processing
     fs.rmSync(files.image[0].filepath)
     // convert image to tensor
-    const tensorImage = node.decodeImage(imageBuffer)
+    const tensorImage = decodeImage(imageBuffer)
     // the fun stuff!
     imageClassification(tensorImage).then((classificationResult) => {
       console.log('Got an image. Looks like ', classificationResult[0])
