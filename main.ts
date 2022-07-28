@@ -73,13 +73,13 @@ try {
     ' generate`'
   )
 }
-// make sure all needed settings are set
-if (
-  !((settings.node &&
-    settings.privateKey &&
-    settings.maxReward &&
-    settings.cooldown) ?? '')
-) {
+// make sure all needed settings are set correctly
+if (!(
+  (typeof settings.node === 'string') &&
+  (typeof settings.privateKey === 'string') &&
+  (typeof settings.maxReward === 'number') &&
+  (typeof settings.cooldown === 'number')
+)) {
   throw new Error(
     'Invalid settings, make sure every required setting is defined'
   )
