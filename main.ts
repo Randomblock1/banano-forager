@@ -95,7 +95,7 @@ const formidableOptions = {
 // FUNCTION DECLARATIONS //
 function validateAddress (address: string) {
   const validationResult: { valid: boolean, message: string } = bananojs.bananoUtil.getBananoAccountValidationInfo(address)
-  if (validationResult.valid === true) {
+  if (validationResult.valid) {
     return true
   } else {
     return validationResult.message
@@ -103,11 +103,12 @@ function validateAddress (address: string) {
 }
 
 async function imageClassification (image: object) {
+  // return predictions from an image
   const predictions = (await mobilenetModel).classify(image)
   return predictions
 }
 
-function filterFunction ({ name, originalFilename, mimetype }: any) {
+function filterFunction ({ _, __, mimetype }: any) {
   // keep only images
   return mimetype?.includes('image')
 }
