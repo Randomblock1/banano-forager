@@ -118,7 +118,7 @@ function filterFunction ({ name, originalFilename, mimetype }: formidable.Part):
   // keep only images
   const file = { name, originalFilename, mimetype }
   const regex = /^image\/(png|jpeg|bmp|gif)$/
-  return regex.test(file.mimetype || '')
+  return regex.test(file.mimetype || '') ?? false
 }
 
 function banToRaw (ban: number): number {
