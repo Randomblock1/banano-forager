@@ -117,7 +117,8 @@ async function imageClassification (image: object): Promise<ClassificationResult
 function filterFunction ({ name, originalFilename, mimetype }: formidable.Part): boolean {
   // keep only images
   const file = { name, originalFilename, mimetype }
-  return Boolean(file.mimetype?.includes('image'))
+  const regex = /^image\/(png|jpeg|bmp|gif)$/
+  return Boolean(file.mimetype?.match(regex))
 }
 
 function banToRaw (ban: number): number {
@@ -193,50 +194,57 @@ app.post('/submit', (req, res, next) => {
     // delete after processing
     fs.rmSync(files.image[0].filepath)
     // convert image to tensor
-    const tensorImage = decodeImage(imageBuffer, 3, undefined, false)
-    // the fun stuff!
-    imageClassification(tensorImage).then((classificationResult) => {
-      console.log('Got an image. Looks like ', classificationResult[0])
-      if (classificationResult[0].className === 'banana') {
+    try {
+      const tensorImage = decodeImage(imageBuffer, 3, undefined, false)
+      // the fun stuff!
+      imageClassification(tensorImage).then((classificationResult) => {
+        console.log('Got an image. Looks like ', classificationResult[0])
+        if (classificationResult[0].className === 'banana') {
         // reward based on confidence, may reduce impact of false positives
-        const reward = Number((settings.maxReward * classificationResult[0].probability).toFixed(2))
-        // send banano
-        bananojs.bananoUtil.sendFromPrivateKey(
-          bananojs.bananodeApi,
-          settings.privateKey,
-          claimAddress,
-          banToRaw(reward),
-          'ban_'
-        ).then((txid) => {
-          console.log(
-            'Sent ' +
+          const reward = Number((settings.maxReward * classificationResult[0].probability).toFixed(2))
+          // send banano
+          bananojs.bananoUtil.sendFromPrivateKey(
+            bananojs.bananodeApi,
+            settings.privateKey,
+            claimAddress,
+            banToRaw(reward),
+            'ban_'
+          ).then((txid) => {
+            console.log(
+              'Sent ' +
             reward.toString() +
             ' banano to ' +
             claimAddress +
             ' with TXID ' +
             txid
-          )
-          res.render('success', {
-            transactionId: txid,
-            address: claimAddress,
-            amount: reward,
-            result: JSON.stringify(classificationResult)
-          })
-        }).catch((err) => {
+            )
+            res.render('success', {
+              transactionId: txid,
+              address: claimAddress,
+              amount: reward,
+              result: JSON.stringify(classificationResult)
+            })
+          }).catch((err) => {
           // catch banano send errors
-          console.log('Error sending banano: ' + err)
-          res.render('fail', { errorReason: err })
-        })
-      } else {
+            console.log('Error sending banano: ' + err)
+            res.render('fail', { errorReason: err })
+          })
+        } else {
         // reject image
-        console.log(claimAddress + ' did not submit a banana')
-        res.render('fail', { errorReason: 'Not a banana. Results: ' + JSON.stringify(classificationResult) })
-      }
-    }).catch((err) => {
+          console.log(claimAddress + ' did not submit a banana')
+          res.render('fail', { errorReason: 'Not a banana. Results: ' + JSON.stringify(classificationResult) })
+        }
+      }).catch((err) => {
       // catch imageClassification errors
-      console.log('Error processing image from ' + claimAddress + ': ' + err)
-      res.render('fail', { errorReason: err })
-    })
+        console.log('Error processing image from ' + claimAddress + ': ' + err)
+        res.render('fail', { errorReason: err })
+      })
+    } catch (decodeImageError) {
+      res.render('fail', {
+        errorReason: 'Invalid image. Must be valid PNG, JPEG, BMP, or GIF.'
+      })
+      console.log('received invalid image from ' + req.ip)
+    }
   })
 })
 
