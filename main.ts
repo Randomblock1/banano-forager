@@ -3,7 +3,6 @@ import express from 'express'
 import yargs from 'yargs'
 import YAML from 'yaml'
 import fs from 'fs'
-import sanitize from 'sanitize-filename'
 import bananojs from '@bananocoin/bananojs'
 import mobilenet from '@tensorflow-models/mobilenet'
 import { ready as tensorflowGetReady } from '@tensorflow/tfjs-node'
@@ -151,16 +150,8 @@ app.get('/', (req, res) => {
   res.render('index')
 })
 
-app.get('/faucet', (req, res) => {
-  res.render('faucet')
-})
-
-app.get('/fail', (req, res) => {
-  res.render('fail')
-})
-
 // set up POST endpoint at /submit
-app.post('/submit', (req, res, next) => {
+app.post('/', (req, res, next) => {
   const form = formidable(formidableOptions)
   // runs every time someone submits a form
   form.parse(req, (err, fields, files: any) => {
@@ -169,14 +160,23 @@ app.post('/submit', (req, res, next) => {
       return
     }
 
+    if (fields.address[0] === '') {
+      res.render('fail', {
+        errorReason: 'No address provided'
+      })
+      return
+    } else if (files.image === undefined) {
+      res.render('fail', {
+        errorReason: 'No image provided'
+      })
+      return
+    }
+
     console.log('Received data: ' + JSON.stringify(fields) + ' from ' + req.ip)
     console.log('Received file: ' + files.image + ' from ' + req.ip)
     console.log(files.image[0].filepath)
 
-    // sanitize address (just in case!)
-    const claimAddress = sanitize(
-      fields.address.toString()
-    )
+    const claimAddress = fields.address[0]
 
     // verify address
     const addressVerification = validateAddress(claimAddress)
@@ -222,7 +222,7 @@ app.post('/submit', (req, res, next) => {
               transactionId: txid,
               address: claimAddress,
               amount: reward,
-              result: JSON.stringify(classificationResult)
+              result: classificationResult
             })
           }).catch((err) => {
           // catch banano send errors

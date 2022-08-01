@@ -1,4 +1,4 @@
-include head.pug
+include includes/head.pug
 body
     .section
         .container
@@ -8,8 +8,24 @@ body
                 .message-header
                     p Your Banano has been sent.
                 .message-body
-                    p Transaction ID: #{transactionId}
-                    p Sent #{amount} BAN to address #{address}
-                    p Image classification result: #{result}
+                    span.icon-text
+                        span.icon
+                            i.fa-solid.fa-qrcode
+                        span Transaction ID: 
+                            a(href=`https://creeper.banano.cc/hash/${transactionId}`) #{transactionId}
+                    br
+                    span.icon-text
+                        span.icon
+                            i.fa-solid.fa-paper-plane-top
+                        span Sent #{amount} BAN to address #{address}
+                    br
+                    span.icon-text
+                        span.icon
+                            i.fa-solid.fa-microchip-ai
+                        span Image classification result: 
+                    br
+                    p #{JSON.stringify(result[0])}
+                    p #{JSON.stringify(result[1])}
+                    p #{JSON.stringify(result[2])}
 
-            include footer.pug
+            include includes/footer.pug
