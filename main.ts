@@ -7,6 +7,7 @@ import bananojs from '@bananocoin/bananojs'
 import mobilenet from '@tensorflow-models/mobilenet'
 import { ready as tensorflowGetReady } from '@tensorflow/tfjs-node'
 import { decodeImage } from '@tensorflow/tfjs-node/dist/image.js'
+import { imageHash } from 'image-hash'
 
 const app = express()
 app.set('view engine', 'pug')
@@ -134,6 +135,12 @@ const mobilenetModel: Promise<mobilenet.MobileNet> = tensorflowGetReady().then(_
   return mobilenet.load({ version: 2, alpha: 1 })
 })
 
+if (!fs.existsSync('hashDB.json')) {
+  const array: any = []
+  fs.writeFileSync('hashDB.json', JSON.stringify(array))
+}
+const hashDB = JSON.parse(fs.readFileSync('hashDB.json').toString())
+
 console.log(
   'Node: ' +
   settings.node +
@@ -150,6 +157,7 @@ app.get('/', (req, res) => {
   res.render('index')
 })
 
+// TODO: get out of async hell
 // set up POST endpoint at /submit
 app.post('/', (req, res, next) => {
   const form = formidable(formidableOptions)
@@ -189,62 +197,77 @@ app.post('/', (req, res, next) => {
     }
     // process image
     const imageBuffer = fs.readFileSync(files.image[0].filepath)
-    // TODO: store perceptual hash and real hash in database
-    // TODO: check if image is original
-    // delete after processing
-    fs.rmSync(files.image[0].filepath)
-    // convert image to tensor
-    try {
-      const tensorImage = decodeImage(imageBuffer, 3, undefined, false)
-      // the fun stuff!
-      imageClassification(tensorImage).then((classificationResult) => {
-        console.log('Got an image. Looks like ', classificationResult[0])
-        if (classificationResult[0].className === 'banana') {
-        // reward based on confidence, may reduce impact of false positives
-          const reward = Number((settings.maxReward * classificationResult[0].probability).toFixed(2))
-          // send banano
-          bananojs.bananoUtil.sendFromPrivateKey(
-            bananojs.bananodeApi,
-            settings.privateKey,
-            claimAddress,
-            banToRaw(reward),
-            'ban_'
-          ).then((txid) => {
-            console.log(
-              'Sent ' +
+    imageHash({ data: imageBuffer }, 16, true, (error: Error, data: string) => {
+      if (error) {
+        throw error
+      }
+      console.log(data)
+      if (hashDB.includes(data)) {
+        res.render('fail', {
+          errorReason: 'Image already claimed'
+        })
+        console.log('received duplicate image')
+      } else {
+        hashDB.push(data)
+        fs.writeFileSync('hashDB.json', JSON.stringify(hashDB))
+        console.log('added image to hashDB')
+        // TODO: check if image is original
+        // delete after processing
+        fs.rmSync(files.image[0].filepath)
+        // convert image to tensor
+        try {
+          const tensorImage = decodeImage(imageBuffer, 3, undefined, false)
+          // the fun stuff!
+          imageClassification(tensorImage).then((classificationResult) => {
+            console.log('Got an image. Looks like ', classificationResult[0])
+            if (classificationResult[0].className === 'banana') {
+              // reward based on confidence, may reduce impact of false positives
+              const reward = Number((settings.maxReward * classificationResult[0].probability).toFixed(2))
+              // send banano
+              bananojs.bananoUtil.sendFromPrivateKey(
+                bananojs.bananodeApi,
+                settings.privateKey,
+                claimAddress,
+                banToRaw(reward),
+                'ban_'
+              ).then((txid) => {
+                console.log(
+                  'Sent ' +
             reward.toString() +
             ' banano to ' +
             claimAddress +
             ' with TXID ' +
             txid
-            )
-            res.render('success', {
-              transactionId: txid,
-              address: claimAddress,
-              amount: reward,
-              result: classificationResult
-            })
+                )
+                res.render('success', {
+                  transactionId: txid,
+                  address: claimAddress,
+                  amount: reward,
+                  result: classificationResult
+                })
+              }).catch((err) => {
+                // catch banano send errors
+                console.log('Error sending banano: ' + err)
+                res.render('fail', { errorReason: err })
+              })
+            } else {
+              // reject image
+              console.log(claimAddress + ' did not submit a banana')
+              res.render('fail', { errorReason: 'Not a banana. Results: ' + JSON.stringify(classificationResult) })
+            }
           }).catch((err) => {
-          // catch banano send errors
-            console.log('Error sending banano: ' + err)
+            // catch imageClassification errors
+            console.log('Error processing image from ' + claimAddress + ': ' + err)
             res.render('fail', { errorReason: err })
           })
-        } else {
-        // reject image
-          console.log(claimAddress + ' did not submit a banana')
-          res.render('fail', { errorReason: 'Not a banana. Results: ' + JSON.stringify(classificationResult) })
+        } catch (decodeImageError) {
+          res.render('fail', {
+            errorReason: 'Invalid image. Must be valid PNG, JPEG, BMP, or GIF.'
+          })
+          console.log('received invalid image from ' + req.ip)
         }
-      }).catch((err) => {
-      // catch imageClassification errors
-        console.log('Error processing image from ' + claimAddress + ': ' + err)
-        res.render('fail', { errorReason: err })
-      })
-    } catch (decodeImageError) {
-      res.render('fail', {
-        errorReason: 'Invalid image. Must be valid PNG, JPEG, BMP, or GIF.'
-      })
-      console.log('received invalid image from ' + req.ip)
-    }
+      }
+    })
   })
 })
 

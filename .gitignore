@@ -3,6 +3,7 @@ settings.yml
 old_settings.yml
 dist/
 *.conf
+hashDB.json
 
 # Logs
 logs
