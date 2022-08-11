@@ -128,18 +128,12 @@ function banToRaw (ban: number): number {
   return Number(ban * 100000000000000000000000000000)
 }
 
-async function receiveDonations (node: string, privateKey: string): Promise<object> {
-  const publicKey = await bananojs.bananoUtil.getPublicKey(privateKey)
-  const account = bananojs.bananoUtil.getAccount(publicKey, 'ban_')
-  let representative = await bananojs.bananodeApi.getAccountRepresentative(account)
-  if (!representative) {
-    representative = account
-  }
+async function receiveDonations (): Promise<object> {
   const response = await bananojs.depositUtil.receive(
     console,
     bananojs.bananodeApi,
-    account,
-    privateKey,
+    bananoAccount,
+    settings.privateKey,
     representative,
     null,
     'ban_'
@@ -151,8 +145,14 @@ async function receiveDonations (node: string, privateKey: string): Promise<obje
 }
 
 // INITIALIZATION //
-// set node
+// set banano api settings
 bananojs.bananodeApi.setUrl(settings.node)
+const publicKey = bananojs.bananoUtil.getPublicKey(settings.privateKey)
+const bananoAccount = bananojs.bananoUtil.getAccount(publicKey, 'ban_')
+let representative = await bananojs.bananodeApi.getAccountRepresentative(bananoAccount)
+if (!representative) {
+  representative = bananoAccount
+}
 
 // load mobilenet model once ready
 const mobilenetModel: Promise<mobilenet.MobileNet> = tensorflowGetReady().then(_ => {
@@ -170,7 +170,7 @@ const hashDB = JSON.parse(fs.readFileSync('hashDB.json').toString())
 const task = new AsyncTask(
   'receive donations',
   () => {
-    return receiveDonations(settings.node, settings.privateKey)
+    return receiveDonations()
       .then((result) => { console.log('successfully checked for donations: ' + result) })
       .catch((err) => { console.log('Error receiving banano: ' + err) })
   })
