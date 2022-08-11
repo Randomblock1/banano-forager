@@ -128,6 +128,12 @@ function banToRaw (ban: number): number {
   return Number(ban * 100000000000000000000000000000)
 }
 
+function rawToBan (raw: number): number {
+  // turns out you can split banano, a lot
+  return Number(raw / 100000000000000000000000000000)
+}
+
+let bananoBalance: string
 async function receiveDonations (): Promise<object> {
   const response = await bananojs.depositUtil.receive(
     console,
@@ -140,19 +146,28 @@ async function receiveDonations (): Promise<object> {
   )
   if (response.receiveCount > 0) {
     console.log(response.receiveMessage)
+    await updateBalance()
+    console.log('Balance updated to ' + bananoBalance)
   }
   return response
+}
+
+async function updateBalance () {
+  const rawBalance = await bananojs.bananodeApi.getAccountBalanceRaw(bananoAccount)
+  bananoBalance = rawToBan(Number(rawBalance)).toFixed(2)
+  return bananoBalance
 }
 
 // INITIALIZATION //
 // set banano api settings
 bananojs.bananodeApi.setUrl(settings.node)
-const publicKey = bananojs.bananoUtil.getPublicKey(settings.privateKey)
+const publicKey = await bananojs.bananoUtil.getPublicKey(settings.privateKey)
 const bananoAccount = bananojs.bananoUtil.getAccount(publicKey, 'ban_')
 let representative = await bananojs.bananodeApi.getAccountRepresentative(bananoAccount)
 if (!representative) {
   representative = bananoAccount
 }
+await updateBalance()
 
 // load mobilenet model once ready
 const mobilenetModel: Promise<mobilenet.MobileNet> = tensorflowGetReady().then(_ => {
@@ -189,10 +204,15 @@ console.log(
   settings.maxReward.toString()
 )
 
+console.log('Balance: ' + await updateBalance())
+
 // SETUP ROUTES //
 // send webpages when accessed
 app.get('/', (req, res) => {
-  res.render('index')
+  res.render('index', {
+    balance: bananoBalance,
+    faucetReward: settings.maxReward
+  })
 })
 
 // TODO: get out of async hell

@@ -254,12 +254,6 @@ declare module '@bananocoin/bananojs' {
          */
         function getNanoAccount(publicKey: string): string;
         /**
-         * Get the banano parts (banano, banoshi, raw) for a given raw value.
-         * @param amountRawStr - the raw amount, as a string.
-         * @returns the banano parts.
-         */
-        function getBananoPartsFromRaw(amountRawStr: string): BananoParts;
-        /**
          * Get the nano parts nano, nanoshi, raw) for a given raw value.
          * @param amountRawStr - the raw amount, as a string.
          * @returns the banano parts.
@@ -322,7 +316,7 @@ declare module '@bananocoin/bananojs' {
          * @param privateKey - the private key.
          * @returns the public key.
          */
-        function getPublicKey(privateKey: string): string;
+        function getPublicKey(privateKey: string): Promise<string>;
         /**
          * validates a seed.
          * @param seed - the seed to use to validate.
@@ -502,5 +496,12 @@ declare module '@bananocoin/bananojs' {
         message: string;
         valid: boolean;
     };
+
+    /**
+         * Get the banano parts (banano, banoshi, raw) for a given raw value.
+         * @param amountRawStr - the raw amount, as a string.
+         * @returns the banano parts.
+         */
+     function getBananoPartsFromRaw(amountRawStr: string): BananoParts;
 
 }

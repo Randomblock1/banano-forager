@@ -10,6 +10,6 @@ Then, I'll need to check and make sure the images are original. Reverse image lo
 
 Finally, I need to actually ~~send the banano~~. I guess I'll use [bananojs](https://github.com/BananoCoin/bananojs). (Took more work than it should have, and I'm getting close to async hell.)
 
-I should add a balance indicator and ~~automatic donation receiving~~.
+I should add a ~~balance indicator~~ and ~~automatic donation receiving~~.
 
 Then I'll make it look nice. It just looks like a template, I should add some images and more text/pages.
