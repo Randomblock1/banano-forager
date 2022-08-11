@@ -91,7 +91,7 @@ if (!(
 const formidableOptions: formidable.Options = {
   hashAlgorithm: 'sha256',
   keepExtensions: true,
-  maxFileSize: 2 * 1024 * 1024, // 2MB
+  maxFileSize: 5 * 1024 * 1024, // 5MB
   filter: filterFunction
 }
 

@@ -9,7 +9,8 @@ body
                 p DONATE HERE: ban_1picturessx4aedsf59gm6qjkm6e3od4384m1qpfnotgsuoczbmhdb3e1zkh
                 p Current faucet balance: #{balance} BAN
                 p This is a Banano faucet that requires you to take a picture of a banana.
-                p 1 Banana = #{faucetReward} BAN
+                p 1 Banana = #{faucetReward} BAN maximum
+                p The more confident the AI is that it sees a banana, the more BAN you will receive. Try to keep the banana as the main focus of the image.
             form(method='POST' action='/' enctype="multipart/form-data")
                 .box
                     .field
@@ -28,7 +29,7 @@ body
                                 span.file-cta
                                     span.file-icon
                                         i.fa-solid.fa-image
-                                    span.file-label Choose a file (2MB max)…
+                                    span.file-label Choose a file (5MB max)…
                                 span.file-name
                         p.help Images are only temporarily stored, but we keep some info to prevent duplicates.
 
