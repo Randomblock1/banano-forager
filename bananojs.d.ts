@@ -1,4 +1,7 @@
-// Declaration file generated with `npx jsdoc -t node_modules/tsd-jsdoc/dist/ -d types documentation.js index.js app/scripts/**/*.js` 
+/* eslint-disable camelcase */
+/* eslint-disable no-use-before-define */
+/* eslint-disable no-unused-vars */
+// Declaration file generated with `npx jsdoc -t node_modules/tsd-jsdoc/dist/ -d types documentation.js index.js app/scripts/**/*.js`
 // You need tsd-jsdoc and jsdoc installed in the project
 
 declare module '@bananocoin/bananojs' {
@@ -351,12 +354,32 @@ declare module '@bananocoin/bananojs' {
     }
 
     declare namespace depositUtil {
+        interface receivedResponse {
+            pendingCount: number;
+            pendingBlocks: string[];
+            receiveCount: number;
+            receiveBlocks: string[];
+            pendingMessage: string;
+            receiveMessage: string;
+        }
         /**
          * Recieve deposits for a nano account with a given seed.
          * @param seed - the seed to use to find the account.
          * @param seedIx - the index to use with the seed.
          * @param representative - the representative.
          * @param specificPendingBlockHash - a specific block hash to receive (optional).
+         * @returns returns the response returned by the receive.
+         */
+         function receive(loggingUtil: any, bananodeApi: bananodeApi, account: string, privateKey: string, representative: string, specificPendingBlockHash: string | null, accountPrefix: string): Promise<receivedResponse>;
+        /**
+         * Recieve deposits for a nano account with a given seed.
+         * @param loggingUtil - the loggingUtil to use.
+         * @param bananodeApi - the bananodeApi to use.
+         * @param account - the account to use.
+         * @param privateKey - the privateKey to use.
+         * @param representative - the representative.
+         * @param specificPendingBlockHash - a specific block hash to receive (optional).
+         * @param accountPrefix - the account prefix.
          * @returns returns the response returned by the receive.
          */
         function receiveNanoDepositsForSeed(seed: string, seedIx: string, representative: string, specificPendingBlockHash: string): Promise<object>;
@@ -430,6 +453,12 @@ declare module '@bananocoin/bananojs' {
          */
         function getAccountInfo(account: string, representativeFlag: boolean): Promise<object>;
         /**
+         * Get the account representative for an account.
+         *
+         * @param account - the account to use.
+         */
+        function getAccountRepresentative(account: string): Promise<string>;
+        /**
          * Get the network block count.
          *
          * Calls {@link https://docs.nano.org/commands/rpc-protocol/#block_count}
@@ -474,4 +503,4 @@ declare module '@bananocoin/bananojs' {
         valid: boolean;
     };
 
-}    
+}

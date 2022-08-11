@@ -1,11 +1,15 @@
 # The ramblings and voices inside my head
 
-Okay, so I guess I'm doing this. First, I need to make sure that I can even detect the banana, so I guess I'll start with Tensorflow.js. DONE! Wow, that wasn't so bad. It's also pretty quick.
+## crossed out things are done
 
-It needs to be a web application that sends the image to the server, and the server does the rest. DONE! That part works.
+Okay, so I guess I'm doing this. First, I need to make sure that I can even ~~detect the banana~~ (hey, that was pretty easy!), so I guess I'll start with Tensorflow.js.
 
-Then, I'll need to check and make sure the images are original. Reverse image lookup, then phashing and storing to prevent duplicates. SEMI-DONE! I still need to reverse image lookup.
+It needs to be ~~a web form that sends the image to the server~~, and ~~the server does the rest~~. (Formidable sure is convenient!)
 
-Finally, I need to actually send the banano. I guess I'll use [bananojs](https://github.com/BananoCoin/bananojs). DONE! Took more work than it needed, man I hate async right now. I should probably learn how to escape async hell.
+Then, I'll need to check and make sure the images are original. Reverse image lookup, then ~~perceptual hashing and storing~~ to prevent duplicates and cheaters.
+
+Finally, I need to actually ~~send the banano~~. I guess I'll use [bananojs](https://github.com/BananoCoin/bananojs). (Took more work than it should have, and I'm getting close to async hell.)
+
+I should add a balance indicator and ~~automatic donation receiving~~.
 
 Then I'll make it look nice. It just looks like a template, I should add some images and more text/pages.

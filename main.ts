@@ -8,7 +8,9 @@ import mobilenet from '@tensorflow-models/mobilenet'
 import { ready as tensorflowGetReady } from '@tensorflow/tfjs-node'
 import { decodeImage } from '@tensorflow/tfjs-node/dist/image.js'
 import { imageHash } from 'image-hash'
+import { ToadScheduler, SimpleIntervalJob, AsyncTask } from 'toad-scheduler'
 
+const scheduler = new ToadScheduler()
 const app = express()
 app.set('view engine', 'pug')
 
@@ -126,6 +128,28 @@ function banToRaw (ban: number): number {
   return Number(ban * 100000000000000000000000000000)
 }
 
+async function receiveDonations (node: string, privateKey: string): Promise<object> {
+  const publicKey = await bananojs.bananoUtil.getPublicKey(privateKey)
+  const account = bananojs.bananoUtil.getAccount(publicKey, 'ban_')
+  let representative = await bananojs.bananodeApi.getAccountRepresentative(account)
+  if (!representative) {
+    representative = account
+  }
+  const response = await bananojs.depositUtil.receive(
+    console,
+    bananojs.bananodeApi,
+    account,
+    privateKey,
+    representative,
+    null,
+    'ban_'
+  )
+  if (response.receiveCount > 0) {
+    console.log(response.receiveMessage)
+  }
+  return response
+}
+
 // INITIALIZATION //
 // set node
 bananojs.bananodeApi.setUrl(settings.node)
@@ -135,11 +159,25 @@ const mobilenetModel: Promise<mobilenet.MobileNet> = tensorflowGetReady().then(_
   return mobilenet.load({ version: 2, alpha: 1 })
 })
 
+// load hash database
 if (!fs.existsSync('hashDB.json')) {
   const array: any = []
   fs.writeFileSync('hashDB.json', JSON.stringify(array))
 }
 const hashDB = JSON.parse(fs.readFileSync('hashDB.json').toString())
+
+// receive donations every 15 minutes
+const task = new AsyncTask(
+  'receive donations',
+  () => {
+    return receiveDonations(settings.node, settings.privateKey)
+      .then((result) => { console.log('successfully checked for donations: ' + result) })
+      .catch((err) => { console.log('Error receiving banano: ' + err) })
+  })
+
+const job = new SimpleIntervalJob({ minutes: 15 }, task)
+
+scheduler.addSimpleIntervalJob(job)
 
 console.log(
   'Node: ' +
