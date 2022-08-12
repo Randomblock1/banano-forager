@@ -215,6 +215,11 @@ app.get('/', (req, res) => {
   })
 })
 
+// add gobanme support
+app.get('/banano.json', (req, res) => {
+  res.send('{ "author":"Randomblock1", "description":"Banano faucet that makes 1 Banana = 1 BAN a reality", "suggested_donation":"10", "address": "ban_1picturessx4aedsf59gm6qjkm6e3od4384m1qpfnotgsuoczbmhdb3e1zkh" }')
+})
+
 // TODO: get out of async hell
 // set up POST endpoint at /submit
 app.post('/', (req, res, next) => {
