@@ -12,6 +12,14 @@ A web frontend where a user takes a photo of a banana. The photo is then sent to
 
 ## Donations
 
-donate today to 360 noscope the buggy code (this is a vanity address but it sucks)
+Do ~~not~~ feed the monkeys!
 
 ban_1picturessx4aedsf59gm6qjkm6e3od4384m1qpfnotgsuoczbmhdb3e1zkh
+
+## To-do
+
+[ ] Add captcha
+[ ] Pretty UI
+[ ] Docker/Heroku/etc deployment
+[ ] Move hash table to MongoDB
+[ ] Banana gallery
