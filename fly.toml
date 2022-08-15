@@ -9,7 +9,7 @@ processes = []
   builder = "heroku/buildpacks:20"
 
 [env]
-  PORT = "8080"
+  PORT = "80"
 
 [experimental]
   allowed_public_ports = []
