@@ -6,7 +6,7 @@ Okay, so I guess I'm doing this. First, I need to make sure that I can even ~~de
 
 It needs to be ~~a web form that sends the image to the server~~, and ~~the server does the rest~~. (Formidable sure is convenient!)
 
-Then, I'll need to check and make sure the images are original. Reverse image lookup, then ~~perceptual hashing and storing~~ to prevent duplicates and cheaters.
+Then, I'll need to check and make sure the images are original. ~~Reverse image lookup~~, then ~~perceptual hashing and storing~~ to prevent duplicates and cheaters. (I hope Google doesn't rate limit me...)
 
 Finally, I need to actually ~~send the banano~~. I guess I'll use [bananojs](https://github.com/BananoCoin/bananojs). (Took more work than it should have, and I'm getting close to async hell.)
 
