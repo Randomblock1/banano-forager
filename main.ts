@@ -355,6 +355,7 @@ app.post('/', (req, res, next) => {
 })
 
 // GO TIME! //
-app.listen(80, () => {
-  console.log('Server listening on http://localhost:80...\n')
+const port = process.env.PORT || 80
+app.listen(port, () => {
+  console.log('Server listening on http://localhost:' + port + '...\n')
 })

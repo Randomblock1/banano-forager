@@ -33,7 +33,7 @@
     },
     "scripts": {
         "lint": "eslint --fix --ext .ts",
-        "build": "tsc",
-        "run": "npm run build && node ./dist/main.js"
+        "build": "npx tsc",
+        "start": "node ./dist/main.js"
     }
 }
