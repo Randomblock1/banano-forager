@@ -1,4 +1,5 @@
 include includes/head.pug
+script(src="https://js.hcaptcha.com/1/api.js" async defer)
 body
     .section
         .container
@@ -6,8 +7,8 @@ body
                 img(src='https://banano.cc/presskit/banano-icon.svg' width='40em' height='40em' style='margin-left:15px')
             h2.subtitle Funny faucet for funny monke coin
             .content
-                p DONATE HERE: ban_1picturessx4aedsf59gm6qjkm6e3od4384m1qpfnotgsuoczbmhdb3e1zkh
-                p Current faucet balance: #{balance} BAN
+                p DONATE HERE: #{faucetAddress}
+                p Current faucet balance: #{bananoBalance} BAN
                 p This is a Banano faucet that requires you to take a picture of a banana.
                 p 1 Banana = #{faucetReward} BAN maximum
                 p The more confident the AI is that it sees a banana, the more BAN you will receive. Try to keep the banana as the main focus of the image.
@@ -16,7 +17,7 @@ body
                     .field
                         label.label Banano Address
                         .control.has-icons-left
-                            input.input(name='address' type='text' placeholder='ban_1picturessx4aedsf59gm6qjkm6e3od4384m1qpfnotgsuoczbmhdb3e1zkh')
+                            input.input(name='address' type='text' placeholder=faucetAddress)
                             span.icon.is-small.is-left
                                 i.fas.fa-qrcode
                         p.help Don't worry if you mistype it. The faucet double-checks.
@@ -33,13 +34,16 @@ body
                                 span.file-name
                         p.help Images are only temporarily stored, but the faucet keeps some info to prevent duplicates.
 
+                    .h-captcha(data-sitekey=hcaptchaSiteKey)
+
+                    br
 
                     .control
                         button.button.is-primary Submit
 
-                hr
+            hr
 
-                include includes/footer.pug
+            include includes/footer.pug
 
 script.
     const fileInput = document.querySelector('#fileInput input[type=file]');

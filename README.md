@@ -19,6 +19,9 @@ ban_1picturessx4aedsf59gm6qjkm6e3od4384m1qpfnotgsuoczbmhdb3e1zkh
 ## To-do
 
 [ ] Add captcha
+
 [ ] Pretty UI
+
 [x] Docker/Heroku/etc deployment
+
 [ ] Move hash table to MongoDB

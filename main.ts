@@ -11,30 +11,50 @@ import axios from 'axios'
 import google from 'googlethis'
 import FormData from 'form-data'
 import 'dotenv/config'
+import { verify } from 'hcaptcha'
 
 const scheduler = new ToadScheduler()
 const app = express()
 app.set('view engine', 'pug')
 
+const hcaptchaSiteKey = process.env.HCAPTCHA_SITE_KEY
+const hcaptchaSecret = process.env.HCAPTCHA_SECRET_KEY
+
+if (!hcaptchaSiteKey) {
+  throw new Error('HCAPTCHA_SITE_KEY is not set')
+}
+
+if (!hcaptchaSecret) {
+  throw new Error('HCAPTCHA_SECRET_KEY is not set')
+}
+
 const settings = {
   node: process.env.NODE_URL || 'https://vault.banano.cc/api/node-api',
   maxReward: Number(process.env.MAX_REWARD) || 1,
   cooldown: Number(process.env.COOLDOWN) || 60,
-  privateKey: process.env.PRIVATE_KEY || '',
-  address: process.env.ADDRESS || ''
+  privateKey: process.env.PRIVATE_KEY,
+  address: process.env.ADDRESS
 }
 
 // make sure all needed settings are set correctly
-if (!(
-  (typeof settings.node === 'string') &&
-  (typeof settings.privateKey === 'string') &&
-  (typeof settings.maxReward === 'number') &&
-  (typeof settings.cooldown === 'number') &&
-  (typeof settings.address === 'string')
-) || (settings.privateKey === '') || (settings.address === '')) {
-  throw new Error(
-    'Invalid settings, make sure every required setting is defined'
-  )
+if (!settings.privateKey) {
+  throw new Error('PRIVATE_KEY is not set')
+}
+
+if (!settings.address) {
+  throw new Error('ADDRESS is not set')
+}
+
+if (!settings.node) {
+  throw new Error('NODE_URL is not set')
+}
+
+if (!settings.maxReward) {
+  throw new Error('MAX_REWARD is not set')
+}
+
+if (!settings.cooldown) {
+  throw new Error('COOLDOWN is not set')
 }
 
 console.log(
@@ -109,6 +129,7 @@ async function receiveDonations (): Promise<object> {
     console,
     bananojs.bananodeApi,
     bananoAccount,
+    // @ts-ignore
     settings.privateKey,
     representative,
     null,
@@ -154,10 +175,13 @@ const hashDB = JSON.parse(fs.readFileSync('hashDB.json').toString())
 // receive donations every 15 minutes
 const task = new AsyncTask(
   'receive donations',
-  () => {
-    return receiveDonations()
-      .then((result) => { console.log('successfully checked for donations: ' + result) })
-      .catch((err) => { console.log('Error receiving banano: ' + err) })
+  async () => {
+    try {
+      const result = await receiveDonations()
+      console.log('successfully checked for donations:', result)
+    } catch (err) {
+      console.log('Error receiving banano: ' + err)
+    }
   })
 
 const job = new SimpleIntervalJob({ minutes: 15 }, task)
@@ -169,8 +193,10 @@ console.log('Balance: ' + await updateBalance())
 // send webpages when accessed
 app.get('/', (req, res) => {
   res.render('index', {
-    balance: bananoBalance,
-    faucetReward: settings.maxReward
+    bananoBalance,
+    faucetReward: settings.maxReward,
+    faucetAddress: settings.address,
+    hcaptchaSiteKey
   })
 })
 
@@ -184,7 +210,7 @@ app.get('/banano.json', (req, res) => {
 app.post('/', (req, res, next) => {
   const form = formidable(formidableOptions)
   // runs every time someone submits a form
-  form.parse(req, (err, fields, files: any) => {
+  form.parse(req, async (err, fields, files: any) => {
     if (err !== null) {
       next(err)
       return
@@ -206,6 +232,22 @@ app.post('/', (req, res, next) => {
     console.log('Received file: ' + files.image + ' from ' + req.ip)
 
     const claimAddress = fields.address[0]
+
+    // verify captcha
+    const captchaResponse = fields['h-captcha-response'][0]
+    const captchaValid = await verify(hcaptchaSecret, captchaResponse)
+      .then((data) => {
+        return data.success
+      })
+      .catch(console.error)
+
+    if (captchaValid !== true) {
+      res.render('fail', {
+        errorReason: 'Invalid captcha.'
+      })
+      console.log('received invalid captcha')
+      return
+    }
 
     // verify address
     const addressVerification = validateAddress(claimAddress)
@@ -254,6 +296,7 @@ app.post('/', (req, res, next) => {
                 // send banano
                 bananojs.bananoUtil.sendFromPrivateKey(
                   bananojs.bananodeApi,
+                  // @ts-ignore
                   settings.privateKey,
                   claimAddress,
                   banToRaw(reward),
