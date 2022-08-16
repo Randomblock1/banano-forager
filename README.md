@@ -18,7 +18,7 @@ ban_1picturessx4aedsf59gm6qjkm6e3od4384m1qpfnotgsuoczbmhdb3e1zkh
 
 ## To-do
 
-[ ] Add captcha
+[x] Add captcha
 
 [ ] Pretty UI
 
