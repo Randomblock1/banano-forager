@@ -37,6 +37,16 @@ if (!(
   )
 }
 
+console.log(
+  'Node: ' +
+  settings.node +
+  '\nSeed: ' +
+  settings.privateKey.slice(0, 10) +
+  '...' +
+  '\nFaucetReward: ' +
+  settings.maxReward.toString()
+)
+
 const formidableOptions: formidable.Options = {
   hashAlgorithm: 'sha256',
   keepExtensions: true,
@@ -152,16 +162,6 @@ const task = new AsyncTask(
 
 const job = new SimpleIntervalJob({ minutes: 15 }, task)
 scheduler.addSimpleIntervalJob(job)
-
-console.log(
-  'Node: ' +
-  settings.node +
-  '\nSeed: ' +
-  settings.privateKey.slice(0, 10) +
-  '...' +
-  '\nFaucetReward: ' +
-  settings.maxReward.toString()
-)
 
 console.log('Balance: ' + await updateBalance())
 
