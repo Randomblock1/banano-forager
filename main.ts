@@ -1,7 +1,5 @@
 import formidable from 'formidable'
 import express from 'express'
-import yargs from 'yargs'
-import YAML from 'yaml'
 import fs from 'fs'
 import bananojs from '@bananocoin/bananojs'
 import mobilenet from '@tensorflow-models/mobilenet'
@@ -12,80 +10,28 @@ import { ToadScheduler, SimpleIntervalJob, AsyncTask } from 'toad-scheduler'
 import axios from 'axios'
 import google from 'googlethis'
 import FormData from 'form-data'
+import 'dotenv/config'
 
 const scheduler = new ToadScheduler()
 const app = express()
 app.set('view engine', 'pug')
 
-// SETUP CONFIGURATION VARIABLES //
-const args: any = yargs(process.argv.slice(2))
-  .usage('Usage: $0 [options]')
-  .example('$0', 'Start the app')
-  .option('settings', {
-    alias: 's',
-    default: 'settings.yml',
-    describe: 'YAML file to load settings from',
-    type: 'string'
-  })
-  .command(
-    'generate',
-    'make a new config file',
-    function (yargs) {
-      return yargs.option('file', {
-        alias: 'f',
-        describe: 'where to save the file to',
-        default: 'settings.yml'
-      })
-    },
-    function (yargs) {
-      // generate new valid settings yaml
-      if (fs.existsSync(yargs.file) !== null) {
-        console.log('File already exists. Moving to old_' + yargs.file)
-        fs.cpSync(yargs.file, 'old_' + yargs.file)
-      }
-      fs.writeFileSync(
-        yargs.file,
-        `node: https://vault.banano.cc/api/node-api # which node to use
-privateKey: xxxxxxxxxxxxxxx # private key
-maxReward: 50 # max ban from a claim
-cooldown: 60 # minutes between claims`
-      )
-      console.log(
-        'Successfully generated new config file.\nYour config is now:\n\n' +
-        fs.readFileSync(yargs.file).toString()
-      )
-      process.exit(0)
-    }
-  )
-  .help('h')
-  .alias('h', 'help')
-  .version('version', '1.0').argv
+const settings = {
+  node: process.env.NODE || 'https://vault.banano.cc/api/node-api',
+  maxReward: Number(process.env.MAX_REWARD) || 1,
+  cooldown: Number(process.env.COOLDOWN) || 60,
+  privateKey: process.env.PRIVATE_KEY || '',
+  address: process.env.ADDRESS || ''
+}
 
-// parse settings.yml for settings
-let settings: {
-  node: string
-  privateKey: string
-  maxReward: number
-  cooldown: number
-}
-try {
-  settings = YAML.parse(fs.readFileSync(args.settings).toString())
-} catch (ENOENT) {
-  throw new Error(
-    'No settings file exists at ' +
-    args.settings +
-    ', try running `node ' +
-    args.$0 +
-    ' generate`'
-  )
-}
 // make sure all needed settings are set correctly
 if (!(
   (typeof settings.node === 'string') &&
   (typeof settings.privateKey === 'string') &&
   (typeof settings.maxReward === 'number') &&
-  (typeof settings.cooldown === 'number')
-)) {
+  (typeof settings.cooldown === 'number') &&
+  (typeof settings.address === 'string')
+) || (settings.privateKey === '') || (settings.address === '')) {
   throw new Error(
     'Invalid settings, make sure every required setting is defined'
   )
@@ -355,7 +301,7 @@ app.post('/', (req, res, next) => {
 })
 
 // GO TIME! //
-const port = process.env.PORT || 80
+const port = process.env.PORT || 8080
 app.listen(port, () => {
   console.log('Server listening on http://localhost:' + port + '...\n')
 })
