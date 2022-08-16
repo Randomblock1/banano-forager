@@ -20,6 +20,5 @@ ban_1picturessx4aedsf59gm6qjkm6e3od4384m1qpfnotgsuoczbmhdb3e1zkh
 
 [ ] Add captcha
 [ ] Pretty UI
-[ ] Docker/Heroku/etc deployment
+[x] Docker/Heroku/etc deployment
 [ ] Move hash table to MongoDB
-[ ] Banana gallery
