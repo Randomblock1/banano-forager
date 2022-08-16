@@ -17,7 +17,7 @@ const app = express()
 app.set('view engine', 'pug')
 
 const settings = {
-  node: process.env.NODE || 'https://vault.banano.cc/api/node-api',
+  node: process.env.NODE_URL || 'https://vault.banano.cc/api/node-api',
   maxReward: Number(process.env.MAX_REWARD) || 1,
   cooldown: Number(process.env.COOLDOWN) || 60,
   privateKey: process.env.PRIVATE_KEY || '',
