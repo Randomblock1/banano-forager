@@ -24,4 +24,4 @@ ban_1picturessx4aedsf59gm6qjkm6e3od4384m1qpfnotgsuoczbmhdb3e1zkh
 
 [x] Docker/Heroku/etc deployment
 
-[ ] Move hash table to MongoDB
+[x] Move hash table to MongoDB

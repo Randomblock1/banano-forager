@@ -12,10 +12,20 @@ import google from 'googlethis'
 import FormData from 'form-data'
 import 'dotenv/config'
 import { verify } from 'hcaptcha'
+import { MongoClient } from 'mongodb'
 
 const scheduler = new ToadScheduler()
 const app = express()
 app.set('view engine', 'pug')
+
+const mongoUrl = process.env.MONGO_URL
+if (!mongoUrl) {
+  throw new Error('MONGO_URL is not set')
+}
+const dbClient = new MongoClient(mongoUrl)
+await dbClient.connect()
+const hashDB = dbClient.db('banano-forager').collection('hashes')
+const claims = dbClient.db('banano-forager').collection('claims')
 
 const hcaptchaSiteKey = process.env.HCAPTCHA_SITE_KEY
 const hcaptchaSecret = process.env.HCAPTCHA_SECRET_KEY
@@ -165,13 +175,6 @@ const mobilenetModel: Promise<mobilenet.MobileNet> = tensorflowGetReady().then(_
   return mobilenet.load({ version: 2, alpha: 1 })
 })
 
-// load hash database
-if (!fs.existsSync('hashDB.json')) {
-  const array: any = []
-  fs.writeFileSync('hashDB.json', JSON.stringify(array))
-}
-const hashDB = JSON.parse(fs.readFileSync('hashDB.json').toString())
-
 // receive donations every 15 minutes
 const task = new AsyncTask(
   'receive donations',
@@ -265,18 +268,17 @@ app.post('/', (req, res, next) => {
         throw error
       }
       console.log(data)
-      if (hashDB.includes(data)) {
+      const hashResults = await hashDB.find({ hash: data }).toArray()
+      if (hashResults.length > 0) {
         res.render('fail', {
           errorReason: 'Image already uploaded'
         })
         console.log('user uploaded duplicate image')
       } else {
-        hashDB.push(data)
-        fs.writeFileSync('hashDB.json', JSON.stringify(hashDB))
-        console.log('added image to hashDB')
         const tempUrl = await uploadFile(files.image[0].filepath)
         const imageMatches = await google.search(tempUrl, { ris: true })
         if (imageMatches.results.length > 0) {
+          await hashDB.insertOne({ hash: data, original: false })
           res.render('fail', {
             errorReason: 'Image is from the internet. Is it really that hard to photograph a banana?'
           })
@@ -288,8 +290,9 @@ app.post('/', (req, res, next) => {
           try {
             const tensorImage = decodeImage(imageBuffer, 3, undefined, false)
             // the fun stuff!
-            imageClassification(tensorImage).then((classificationResult) => {
+            imageClassification(tensorImage).then(async (classificationResult) => {
               console.log('Got an image. Looks like ', classificationResult[0])
+              await hashDB.insertOne({ hash: data, original: true, classification: classificationResult[0].className })
               if (classificationResult[0].className === 'banana') {
               // reward based on confidence, may reduce impact of false positives
                 const reward = Number((settings.maxReward * classificationResult[0].probability).toFixed(2))
@@ -301,7 +304,8 @@ app.post('/', (req, res, next) => {
                   claimAddress,
                   banToRaw(reward),
                   'ban_'
-                ).then((txid) => {
+                ).then(async (txid) => {
+                  claims.updateOne({ address: claimAddress }, { $inc: { totalClaimed: reward }, $set: { address: claimAddress, lastClaim: Date() } }, { upsert: true })
                   console.log(
                     'Sent ' +
                     reward.toString() +
