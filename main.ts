@@ -305,7 +305,7 @@ app.post('/', (req, res, next) => {
                   banToRaw(reward),
                   'ban_'
                 ).then(async (txid) => {
-                  claims.updateOne({ address: claimAddress }, { $inc: { totalClaimed: reward }, $set: { address: claimAddress, lastClaim: Date() } }, { upsert: true })
+                  claims.updateOne({ address: claimAddress }, { $inc: { totalSent: reward, totalClaims: 1 }, $set: { address: claimAddress, lastClaim: Date() } }, { upsert: true })
                   console.log(
                     'Sent ' +
                     reward.toString() +
