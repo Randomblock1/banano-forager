@@ -25,7 +25,8 @@ if (!mongoUrl) {
 const dbClient = new MongoClient(mongoUrl)
 await dbClient.connect()
 const hashDB = dbClient.db('banano-forager').collection('hashes')
-const claims = dbClient.db('banano-forager').collection('addresses')
+const claimsDB = dbClient.db('banano-forager').collection('addresses')
+const statsDB = dbClient.db('banano-forager').collection('stats')
 
 const hcaptchaSiteKey = process.env.HCAPTCHA_SITE_KEY
 const hcaptchaSecret = process.env.HCAPTCHA_SECRET_KEY
@@ -41,7 +42,7 @@ if (!hcaptchaSecret) {
 const settings = {
   node: process.env.NODE_URL || 'https://vault.banano.cc/api/node-api',
   maxReward: Number(process.env.MAX_REWARD) || 1,
-  cooldown: Number(process.env.COOLDOWN) || 60,
+  cooldownMs: Number(process.env.COOLDOWN) || 60 * 60 * 1000,
   privateKey: process.env.PRIVATE_KEY,
   address: process.env.ADDRESS
 }
@@ -63,7 +64,7 @@ if (!settings.maxReward) {
   throw new Error('MAX_REWARD is not set')
 }
 
-if (!settings.cooldown) {
+if (!settings.cooldownMs) {
   throw new Error('COOLDOWN is not set')
 }
 
@@ -147,12 +148,12 @@ async function receiveDonations (): Promise<object> {
   )
   if (response.receiveCount > 0) {
     console.log(response.receiveMessage)
+    statsDB.updateOne({ type: 'totals' }, { $inc: { totalDonations: 1 } }, { upsert: true })
     await updateBalance()
     console.log('Balance updated to ' + bananoBalance)
   }
   return response
 }
-
 async function updateBalance () {
   const rawBalance = await bananojs.bananodeApi.getAccountBalanceRaw(bananoAccount)
   bananoBalance = rawToBan(Number(rawBalance)).toFixed(2)
@@ -199,8 +200,29 @@ app.get('/', (req, res) => {
     bananoBalance,
     faucetReward: settings.maxReward,
     faucetAddress: settings.address,
-    cooldown: settings.cooldown,
+    cooldown: settings.cooldownMs,
     hcaptchaSiteKey
+  })
+  statsDB.updateOne({ type: 'totals' }, { $inc: { visits: 1 } }, { upsert: true })
+})
+
+// stats page
+app.get('/stats', async (req, res) => {
+  const stats = await statsDB.findOne({ type: 'totals' })
+  const addressCount = await claimsDB.countDocuments({ totalClaims: { $gt: 0 } })
+  if (!stats) {
+    res.status(500)
+    return
+  }
+  res.render('stats', {
+    lastClaim: stats.lastClaim,
+    totalClaims: stats.totalClaims,
+    totalSent: stats.totalSent,
+    totalDupes: stats.totalDupes,
+    totalUnoriginal: stats.totalUnoriginal,
+    totalDonations: stats.totalDonations,
+    totalAddresses: addressCount,
+    totalVisits: stats.visits
   })
 })
 
@@ -262,9 +284,9 @@ app.post('/', (req, res, next) => {
       console.log('received invalid address: ' + addressVerification)
       return
     }
-    const claimObject = await claims.findOne({ address: claimAddress })
+    const claimObject = await claimsDB.findOne({ address: claimAddress })
     if (claimObject !== null) {
-      const cooldownTime = new Date(+claimObject.lastClaim + settings.cooldown)
+      const cooldownTime = new Date(+claimObject.lastClaim + settings.cooldownMs)
       if (cooldownTime > new Date()) {
         res.render('cooldown', {
           cooldownTime: +cooldownTime
@@ -285,6 +307,8 @@ app.post('/', (req, res, next) => {
         res.render('fail', {
           errorReason: 'Image already uploaded'
         })
+        statsDB.updateOne({ type: 'totals' }, { $inc: { totalDupes: 1 } }, { upsert: true })
+        claimsDB.updateOne({ address: claimAddress }, { $inc: { fails: 1 } }, { upsert: true })
         console.log('user uploaded duplicate image')
       } else {
         const tempUrl = await uploadFile(files.image[0].filepath)
@@ -294,6 +318,8 @@ app.post('/', (req, res, next) => {
           res.render('fail', {
             errorReason: 'Image is from the internet. Is it really that hard to photograph a banana?'
           })
+          statsDB.updateOne({ type: 'totals' }, { $inc: { totalUnoriginal: 1 } }, { upsert: true })
+          claimsDB.updateOne({ address: claimAddress }, { $inc: { fails: 1 } }, { upsert: true })
           console.log('user uploaded unoriginal image')
         } else {
         // delete after processing
@@ -317,7 +343,8 @@ app.post('/', (req, res, next) => {
                   banToRaw(reward),
                   'ban_'
                 ).then(async (txid) => {
-                  claims.updateOne({ address: claimAddress }, { $inc: { totalSent: reward, totalClaims: 1 }, $set: { address: claimAddress, lastClaim: new Date() } }, { upsert: true })
+                  claimsDB.updateOne({ address: claimAddress }, { $inc: { totalSent: reward, totalClaims: 1 }, $set: { address: claimAddress, lastClaim: new Date() } }, { upsert: true })
+                  statsDB.updateOne({ type: 'totals' }, { $inc: { totalSent: reward, totalClaims: 1 }, $set: { lastClaim: new Date() } }, { upsert: true })
                   console.log(
                     'Sent ' +
                     reward.toString() +
@@ -340,6 +367,7 @@ app.post('/', (req, res, next) => {
               } else {
               // reject image
                 console.log(claimAddress + ' did not submit a banana')
+                claimsDB.updateOne({ address: claimAddress }, { $inc: { fails: 1 } }, { upsert: true })
                 res.render('fail', { errorReason: 'Not a banana. Results: ' + JSON.stringify(classificationResult) })
               }
             }).catch((err) => {
@@ -363,4 +391,11 @@ app.post('/', (req, res, next) => {
 const port = process.env.PORT || 8080
 app.listen(port, () => {
   console.log('Server listening on http://localhost:' + port + '...\n')
+})
+
+process.on('SIGINT', async () => {
+  console.log('\nGracefully closing database connections...')
+  await dbClient.close()
+  console.log('Done.')
+  process.exit(0)
 })

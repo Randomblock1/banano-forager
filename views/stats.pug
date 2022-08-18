@@ -1,0 +1,15 @@
+include includes/head.pug
+script(src="https://js.hcaptcha.com/1/api.js" async defer)
+body
+    .section.container
+            .content
+                p Last claim: #{lastClaim}
+                p Total claims: #{totalClaims}
+                p Total sent: #{totalSent} BAN
+                p Duplicate images received: #{totalDupes}
+                p Unoriginal (Googled) images received: #{totalUnoriginal}
+                p Donations received: #{totalDonations}
+                p Main page visits: #{totalVisits}
+                p Unique addresses that claimed from this faucet: #{totalAddresses}
+
+include includes/footer.pug

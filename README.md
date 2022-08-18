@@ -20,8 +20,10 @@ ban_1picturessx4aedsf59gm6qjkm6e3od4384m1qpfnotgsuoczbmhdb3e1zkh
 
 [x] Add captcha
 
-[ ] Pretty UI
+[x] Pretty UI
 
 [x] Docker/Heroku/etc deployment
 
 [x] Move hash table to MongoDB
+
+[ ] Proxy detection (check for Heroku's X-Forwarded-For[last], else use req.ip)
