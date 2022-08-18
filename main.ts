@@ -25,7 +25,7 @@ if (!mongoUrl) {
 const dbClient = new MongoClient(mongoUrl)
 await dbClient.connect()
 const hashDB = dbClient.db('banano-forager').collection('hashes')
-const claims = dbClient.db('banano-forager').collection('claims')
+const claims = dbClient.db('banano-forager').collection('addresses')
 
 const hcaptchaSiteKey = process.env.HCAPTCHA_SITE_KEY
 const hcaptchaSecret = process.env.HCAPTCHA_SECRET_KEY
@@ -199,6 +199,7 @@ app.get('/', (req, res) => {
     bananoBalance,
     faucetReward: settings.maxReward,
     faucetAddress: settings.address,
+    cooldown: settings.cooldown,
     hcaptchaSiteKey
   })
 })
@@ -261,6 +262,17 @@ app.post('/', (req, res, next) => {
       console.log('received invalid address: ' + addressVerification)
       return
     }
+    const claimObject = await claims.findOne({ address: claimAddress })
+    if (claimObject !== null) {
+      const cooldownTime = new Date(+claimObject.lastClaim + settings.cooldown)
+      if (cooldownTime > new Date()) {
+        res.render('cooldown', {
+          cooldownTime: +cooldownTime
+        })
+        console.log('received claim too soon')
+        return
+      }
+    }
     // process image
     const imageBuffer = fs.readFileSync(files.image[0].filepath)
     imageHash({ data: imageBuffer }, 16, true, async (error: Error, data: string) => {
@@ -305,7 +317,7 @@ app.post('/', (req, res, next) => {
                   banToRaw(reward),
                   'ban_'
                 ).then(async (txid) => {
-                  claims.updateOne({ address: claimAddress }, { $inc: { totalSent: reward, totalClaims: 1 }, $set: { address: claimAddress, lastClaim: Date() } }, { upsert: true })
+                  claims.updateOne({ address: claimAddress }, { $inc: { totalSent: reward, totalClaims: 1 }, $set: { address: claimAddress, lastClaim: new Date() } }, { upsert: true })
                   console.log(
                     'Sent ' +
                     reward.toString() +

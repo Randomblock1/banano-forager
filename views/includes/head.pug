@@ -7,3 +7,42 @@ head
     link(rel='stylesheet' href='http://cdn.jsdelivr.net/gh/duyplus/fontawesome-pro/css/all.min.css')
     link(rel='stylesheet' href='https://unpkg.com/bulma-prefers-dark')
     link(rel='icon' type='image/x-icon' href='https://banano.cc/presskit/banano-icon.svg')
+
+nav.navbar.is-success(role='navigation' aria-label='main navigation')
+    .navbar-brand
+        a.navbar-item(href='/')
+            img(src='https://banano.cc/presskit/banano-icon.svg' width='30' style='margin-right:10px')
+            b(style='margin-right:5px') Banano Forager
+            i 1 Banana = 1 Banano
+        a.navbar-burger(role='button' aria-label='menu' aria-expanded='false' data-target='navMenu')
+            span(aria-hidden='true')
+            span(aria-hidden='true')
+            span(aria-hidden='true')
+    #navMenu.navbar-menu
+        .navbar-start
+            a.navbar-item
+                | Stats
+            a.navbar-item(href='https://github.com/randomblock1/banano-forager' target="_blank" rel="noopener noreferrer") GitHub
+                i.fas.fa-arrow-up-right-from-square(style='margin-left:5px')
+
+script.
+    document.addEventListener('DOMContentLoaded', () => {
+
+    // Get all "navbar-burger" elements
+    const $navbarBurgers = Array.prototype.slice.call(document.querySelectorAll('.navbar-burger'), 0);
+
+        // Add a click event on each of them
+        $navbarBurgers.forEach( el => {
+            el.addEventListener('click', () => {
+
+            // Get the target from the "data-target" attribute
+            const target = el.dataset.target;
+            const $target = document.getElementById(target);
+
+            // Toggle the "is-active" class on both the "navbar-burger" and the "navbar-menu"
+            el.classList.toggle('is-active');
+            $target.classList.toggle('is-active');
+
+            });
+        });
+    });
