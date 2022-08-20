@@ -175,7 +175,7 @@ if (!representative) {
 await updateBalance()
 
 // load mobilenet model once ready
-const mobilenetModel: Promise<mobilenet.MobileNet> = tensorflowGetReady().then(_ => {
+const mobilenetModel = tensorflowGetReady().then(_ => {
   return mobilenet.load({ version: 2, alpha: 1 })
 })
 
@@ -185,7 +185,7 @@ const task = new AsyncTask(
   async () => {
     try {
       const result = await receiveDonations()
-      console.log('successfully checked for donations:', result)
+      console.log('Checked for donations:', result)
     } catch (err) {
       console.log('Error receiving banano: ' + err)
     }
@@ -257,8 +257,8 @@ app.post('/', (req, res, next) => {
       return
     }
 
-    console.log('Received data: ' + JSON.stringify(fields) + ' from ' + req.ip)
-    console.log('Received file: ' + files.image + ' from ' + req.ip)
+    console.log(req.ip + ': Received data: ' + JSON.stringify(fields))
+    // console.log(req.ip + ': Received file: ' + files.image)
 
     const claimAddress = fields.address[0]
 
@@ -274,7 +274,7 @@ app.post('/', (req, res, next) => {
       res.render('fail', {
         errorReason: 'Invalid captcha.'
       })
-      console.log('received invalid captcha')
+      console.log(req.ip + ': Invalid captcha')
       return
     }
 
@@ -284,7 +284,7 @@ app.post('/', (req, res, next) => {
       res.render('fail', {
         errorReason: 'Invalid address, reason: ' + addressVerification
       })
-      console.log('received invalid address: ' + addressVerification)
+      console.log(req.ip + ': Invalid address: ' + addressVerification)
       return
     }
     const addressClaim = await claimsDB.findOne({ address: claimAddress })
@@ -294,7 +294,7 @@ app.post('/', (req, res, next) => {
         res.render('cooldown', {
           cooldownTime: +cooldownTime
         })
-        console.log('address ' + claimAddress + ' is on cooldown')
+        console.log(req.ip + ': Address ' + claimAddress + ' is on cooldown')
         return
       }
     }
@@ -305,7 +305,7 @@ app.post('/', (req, res, next) => {
         res.render('cooldown', {
           cooldownTime: +cooldownTime
         })
-        console.log('ip ' + req.ip + ' is on cooldown')
+        console.log(req.ip + ': IP is on cooldown')
         return
       }
     }
@@ -315,7 +315,6 @@ app.post('/', (req, res, next) => {
       if (error) {
         throw error
       }
-      console.log(data)
       const hashResults = await hashDB.find({ hash: data }).toArray()
       if (hashResults.length > 0) {
         res.render('fail', {
@@ -323,7 +322,7 @@ app.post('/', (req, res, next) => {
         })
         statsDB.updateOne({ type: 'totals' }, { $inc: { totalDupes: 1 } }, { upsert: true })
         claimsDB.updateOne({ address: claimAddress }, { $inc: { fails: 1 } }, { upsert: true })
-        console.log('user uploaded duplicate image')
+        console.log(req.ip + ': Duplicate image from ' + claimAddress)
       } else {
         const tempUrl = await uploadFile(files.image[0].filepath)
         const imageMatches = await google.search(tempUrl, { ris: true })
@@ -334,7 +333,7 @@ app.post('/', (req, res, next) => {
           })
           statsDB.updateOne({ type: 'totals' }, { $inc: { totalUnoriginal: 1 } }, { upsert: true })
           claimsDB.updateOne({ address: claimAddress }, { $inc: { fails: 1 } }, { upsert: true })
-          console.log('user uploaded unoriginal image')
+          console.log(req.ip + ': Unoriginal image from ' + claimAddress)
         } else {
         // delete after processing
           fs.rmSync(files.image[0].filepath)
@@ -343,7 +342,7 @@ app.post('/', (req, res, next) => {
             const tensorImage = decodeImage(imageBuffer, 3, undefined, false)
             // the fun stuff!
             imageClassification(tensorImage).then(async (classificationResult) => {
-              console.log('Got an image. Looks like ', classificationResult[0])
+              console.log(req.ip + ': Image looks like ', classificationResult[0])
               await hashDB.insertOne({ hash: data, original: true, classification: classificationResult[0].className })
               if (classificationResult[0].className === 'banana') {
               // reward based on confidence, may reduce impact of false positives
@@ -361,7 +360,8 @@ app.post('/', (req, res, next) => {
                   statsDB.updateOne({ type: 'totals' }, { $inc: { totalSent: reward, totalClaims: 1 }, $set: { lastClaim: new Date() } }, { upsert: true })
                   ipDB.updateOne({ ip: req.ip }, { $inc: { totalSent: reward, totalClaims: 1 }, $set: { lastClaim: new Date() } }, { upsert: true })
                   console.log(
-                    'Sent ' +
+                    req.ip +
+                    ': Sent ' +
                     reward.toString() +
                     ' banano to ' +
                     claimAddress +
@@ -376,25 +376,25 @@ app.post('/', (req, res, next) => {
                   })
                 }).catch((err) => {
                 // catch banano send errors
-                  console.log('Error sending banano: ' + err)
+                  console.log(req.ip + ': Error sending banano: ' + err)
                   res.render('fail', { errorReason: err })
                 })
               } else {
               // reject image
-                console.log(claimAddress + ' did not submit a banana')
+                console.log(req.ip + ': Not a banana from ' + claimAddress)
                 claimsDB.updateOne({ address: claimAddress }, { $inc: { fails: 1 } }, { upsert: true })
                 res.render('fail', { errorReason: 'Not a banana. Results: ' + JSON.stringify(classificationResult) })
               }
             }).catch((err) => {
             // catch imageClassification errors
-              console.log('Error processing image from ' + claimAddress + ': ' + err)
+              console.log(req.ip + ': Error processing image from ' + claimAddress + ': ' + err)
               res.render('fail', { errorReason: err })
             })
           } catch (decodeImageError) {
             res.render('fail', {
               errorReason: 'Invalid image. Must be valid PNG, JPEG, BMP, or GIF.'
             })
-            console.log('user uploaded invalid image from ' + req.ip)
+            console.log(req.ip + ': Invalid image from ' + claimAddress)
           }
         }
       }
