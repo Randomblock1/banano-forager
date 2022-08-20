@@ -17,6 +17,8 @@ import { MongoClient } from 'mongodb'
 const scheduler = new ToadScheduler()
 const app = express()
 app.set('view engine', 'pug')
+// fix for heroku request proxy ip overwrite
+app.set('trust proxy', 1)
 
 const mongoUrl = process.env.MONGO_URL
 if (!mongoUrl) {
@@ -27,6 +29,7 @@ await dbClient.connect()
 const hashDB = dbClient.db('banano-forager').collection('hashes')
 const claimsDB = dbClient.db('banano-forager').collection('addresses')
 const statsDB = dbClient.db('banano-forager').collection('stats')
+const ipDB = dbClient.db('banano-forager').collection('ips')
 
 const hcaptchaSiteKey = process.env.HCAPTCHA_SITE_KEY
 const hcaptchaSecret = process.env.HCAPTCHA_SECRET_KEY
@@ -284,14 +287,25 @@ app.post('/', (req, res, next) => {
       console.log('received invalid address: ' + addressVerification)
       return
     }
-    const claimObject = await claimsDB.findOne({ address: claimAddress })
-    if (claimObject !== null) {
-      const cooldownTime = new Date(+claimObject.lastClaim + settings.cooldownMs)
+    const addressClaim = await claimsDB.findOne({ address: claimAddress })
+    if (addressClaim !== null) {
+      const cooldownTime = new Date(+addressClaim.lastClaim + settings.cooldownMs)
       if (cooldownTime > new Date()) {
         res.render('cooldown', {
           cooldownTime: +cooldownTime
         })
-        console.log('received claim too soon')
+        console.log('address ' + claimAddress + ' is on cooldown')
+        return
+      }
+    }
+    const ipClaim = await ipDB.findOne({ ip: req.ip })
+    if (ipClaim !== null) {
+      const cooldownTime = new Date(+ipClaim.lastClaim + settings.cooldownMs)
+      if (cooldownTime > new Date()) {
+        res.render('cooldown', {
+          cooldownTime: +cooldownTime
+        })
+        console.log('ip ' + req.ip + ' is on cooldown')
         return
       }
     }
@@ -345,6 +359,7 @@ app.post('/', (req, res, next) => {
                 ).then(async (txid) => {
                   claimsDB.updateOne({ address: claimAddress }, { $inc: { totalSent: reward, totalClaims: 1 }, $set: { address: claimAddress, lastClaim: new Date() } }, { upsert: true })
                   statsDB.updateOne({ type: 'totals' }, { $inc: { totalSent: reward, totalClaims: 1 }, $set: { lastClaim: new Date() } }, { upsert: true })
+                  ipDB.updateOne({ ip: req.ip }, { $inc: { totalSent: reward, totalClaims: 1 }, $set: { lastClaim: new Date() } }, { upsert: true })
                   console.log(
                     'Sent ' +
                     reward.toString() +
