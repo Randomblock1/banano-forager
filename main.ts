@@ -98,17 +98,6 @@ function validateAddress (address: string): true | string {
   }
 }
 
-interface ClassificationResult {
-  className: string
-  probability: number
-}
-
-async function imageClassification (image: object): Promise<ClassificationResult[]> {
-  // return predictions from an image
-  const predictions = (await mobilenetModel).classify(image)
-  return predictions
-}
-
 function filterFunction ({ name, originalFilename, mimetype }: formidable.Part): boolean {
   // keep only images
   const file = { name, originalFilename, mimetype }
@@ -175,7 +164,7 @@ if (!representative) {
 await updateBalance()
 
 // load mobilenet model once ready
-const mobilenetModel = tensorflowGetReady().then(_ => {
+const mobilenetModel = await tensorflowGetReady().then(_ => {
   return mobilenet.load({ version: 2, alpha: 1 })
 })
 
@@ -341,7 +330,8 @@ app.post('/', (req, res, next) => {
           try {
             const tensorImage = decodeImage(imageBuffer, 3, undefined, false)
             // the fun stuff!
-            imageClassification(tensorImage).then(async (classificationResult) => {
+            await mobilenetModel.classify(tensorImage).then(async (classificationResult) => {
+              tensorImage.dispose()
               console.log(req.ip + ': Image looks like ', classificationResult[0])
               await hashDB.insertOne({ hash: data, original: true, classification: classificationResult[0].className })
               if (classificationResult[0].className === 'banana') {
