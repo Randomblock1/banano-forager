@@ -143,6 +143,7 @@ function rawToBan (raw: number): number {
 }
 
 async function uploadFile (fileToUpload: string) {
+  // TODO: use express.static() to serve files instead of uploading
   const form = new FormData()
   form.append('file', fs.createReadStream(fileToUpload))
   form.append('expires', '5m')
