@@ -19,7 +19,7 @@ const scheduler = new ToadScheduler()
 const app = express()
 app.set('view engine', 'pug')
 // fix for reverse proxy / cloudflare ip overwrite
-app.set('trust proxy', 3)
+app.set('trust proxy', 2)
 
 const mongoUrl = process.env.MONGO_URL
 if (!mongoUrl) {
@@ -99,7 +99,14 @@ function validateAddress (address: string): true | string {
   }
 }
 
-async function isProxy (ip: string) {
+async function isProxy (req: express.Request) {
+  const cloudflareRealIp = req.get('CF-Connecting-IP')
+  let ip
+  if (cloudflareRealIp !== undefined) {
+    ip = cloudflareRealIp
+  } else {
+    ip = req.ip
+  }
   const response = await fetch('https://ipinfo.io/widget/demo/' + ip, {
     headers: {
       accept: '*/*',
@@ -319,7 +326,7 @@ app.post('/', (req, res, next) => {
     }
 
     // deny proxies
-    if (await isProxy(req.ip)) {
+    if (await isProxy(req)) {
       res.status(403)
       res.render('fail', {
         errorReason: 'Proxies are not allowed'
