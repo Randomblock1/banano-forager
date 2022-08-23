@@ -13,6 +13,7 @@ import FormData from 'form-data'
 import 'dotenv/config'
 import { verify } from 'hcaptcha'
 import { MongoClient } from 'mongodb'
+import fetch from 'node-fetch'
 
 const scheduler = new ToadScheduler()
 const app = express()
@@ -98,6 +99,32 @@ function validateAddress (address: string): true | string {
   }
 }
 
+async function isProxy (ip: string) {
+  const response = await fetch('https://ipinfo.io/widget/demo/' + ip, {
+    headers: {
+      accept: '*/*',
+      'accept-language': 'en-US,en;q=0.9',
+      'content-type': 'application/json',
+      'sec-fetch-dest': 'empty',
+      'sec-fetch-mode': 'cors',
+      'sec-fetch-site': 'same-origin',
+      cookie: 'flash=',
+      Referer: 'https://ipinfo.io/',
+      'Referrer-Policy': 'strict-origin-when-cross-origin'
+    },
+    body: null,
+    method: 'GET'
+  })
+  const body = await response.text()
+  const json = JSON.parse(body)
+  const proxyData = json.data.privacy
+  if (Object.values(proxyData).includes(true)) {
+    return true
+  } else {
+    return false
+  }
+}
+
 function filterFunction ({ name, originalFilename, mimetype }: formidable.Part): boolean {
   // keep only images
   const file = { name, originalFilename, mimetype }
@@ -152,6 +179,10 @@ async function updateBalance () {
   return bananoBalance
 }
 
+function loggingUtil (ip: string, address: string, message: string) {
+  console.log(`${new Date().toISOString()} | ${ip}: ${address}: ${message}`)
+}
+
 // INITIALIZATION //
 // set banano api settings
 bananojs.bananodeApi.setUrl(settings.node)
@@ -203,7 +234,10 @@ app.get('/stats', async (req, res) => {
   const stats = await statsDB.findOne({ type: 'totals' })
   const addressCount = await claimsDB.countDocuments({ totalClaims: { $gt: 0 } })
   if (!stats) {
-    res.status(500)
+    res.status(503)
+    res.render('fail', {
+      message: 'Stats currently unavailable'
+    })
     return
   }
   res.render('stats', {
@@ -233,19 +267,25 @@ app.post('/', (req, res, next) => {
       next(err)
       return
     }
-
-    if (fields.address[0] === '') {
+    try {
+      if (fields.address[0] === '') {
+        res.render('fail', {
+          errorReason: 'No address provided'
+        })
+        return
+      } else if (files.image === undefined) {
+        res.render('fail', {
+          errorReason: 'No image provided'
+        })
+        return
+      }
+    } catch (err) {
+      res.status(400)
       res.render('fail', {
-        errorReason: 'No address provided'
-      })
-      return
-    } else if (files.image === undefined) {
-      res.render('fail', {
-        errorReason: 'No image provided'
+        errorReason: 'Bad request'
       })
       return
     }
-
     console.log(req.ip + ': Received data: ' + JSON.stringify(fields))
     // console.log(req.ip + ': Received file: ' + files.image)
 
@@ -276,6 +316,18 @@ app.post('/', (req, res, next) => {
       console.log(req.ip + ': Invalid address: ' + addressVerification)
       return
     }
+
+    // deny proxies
+    if (await isProxy(req.ip)) {
+      res.status(403)
+      res.render('fail', {
+        errorReason: 'Proxies are not allowed'
+      })
+      loggingUtil(req.ip, claimAddress, 'Used a proxy')
+      return
+    }
+
+    // cancel if on cooldown
     const addressClaim = await claimsDB.findOne({ address: claimAddress })
     if (addressClaim !== null) {
       const cooldownTime = new Date(+addressClaim.lastClaim + settings.cooldownMs)
@@ -283,7 +335,7 @@ app.post('/', (req, res, next) => {
         res.render('cooldown', {
           cooldownTime: +cooldownTime
         })
-        console.log(req.ip + ': Address ' + claimAddress + ' is on cooldown')
+        loggingUtil(req.ip, claimAddress, 'Address is on cooldown')
         return
       }
     }
@@ -294,7 +346,7 @@ app.post('/', (req, res, next) => {
         res.render('cooldown', {
           cooldownTime: +cooldownTime
         })
-        console.log(req.ip + ': IP is on cooldown')
+        loggingUtil(req.ip, claimAddress, 'IP is on cooldown')
         return
       }
     }
@@ -311,7 +363,7 @@ app.post('/', (req, res, next) => {
         })
         statsDB.updateOne({ type: 'totals' }, { $inc: { totalDupes: 1 } }, { upsert: true })
         claimsDB.updateOne({ address: claimAddress }, { $inc: { fails: 1 } }, { upsert: true })
-        console.log(req.ip + ': Duplicate image from ' + claimAddress)
+        loggingUtil(req.ip, claimAddress, 'Duplicate image')
       } else {
         const tempUrl = await uploadFile(files.image[0].filepath)
         const imageMatches = await google.search(tempUrl, { ris: true })
@@ -322,7 +374,7 @@ app.post('/', (req, res, next) => {
           })
           statsDB.updateOne({ type: 'totals' }, { $inc: { totalUnoriginal: 1 } }, { upsert: true })
           claimsDB.updateOne({ address: claimAddress }, { $inc: { fails: 1 } }, { upsert: true })
-          console.log(req.ip + ': Unoriginal image from ' + claimAddress)
+          loggingUtil(req.ip, claimAddress, 'Unoriginal image')
         } else {
         // delete after processing
           fs.rmSync(files.image[0].filepath)
@@ -332,7 +384,7 @@ app.post('/', (req, res, next) => {
             // the fun stuff!
             await mobilenetModel.classify(tensorImage).then(async (classificationResult) => {
               tensorImage.dispose()
-              console.log(req.ip + ': Image looks like ', classificationResult[0])
+              loggingUtil(req.ip, claimAddress, `Image looks like a ${classificationResult[0].className}`)
               if (classificationResult[0].className === 'banana') {
               // reward based on confidence, may reduce impact of false positives
                 const reward = Number((settings.maxReward * classificationResult[0].probability).toFixed(2))
@@ -348,15 +400,7 @@ app.post('/', (req, res, next) => {
                   claimsDB.updateOne({ address: claimAddress }, { $inc: { totalSent: reward, totalClaims: 1 }, $set: { address: claimAddress, lastClaim: new Date() } }, { upsert: true })
                   statsDB.updateOne({ type: 'totals' }, { $inc: { totalSent: reward, totalClaims: 1 }, $set: { lastClaim: new Date() } }, { upsert: true })
                   ipDB.updateOne({ ip: req.ip }, { $inc: { totalSent: reward, totalClaims: 1 }, $set: { lastClaim: new Date() } }, { upsert: true })
-                  console.log(
-                    req.ip +
-                    ': Sent ' +
-                    reward.toString() +
-                    ' banano to ' +
-                    claimAddress +
-                    ' with TXID ' +
-                    txid
-                  )
+                  loggingUtil(req.ip, claimAddress, `Sent ${reward.toString()} banano with TXID ${txid}`)
                   res.render('success', {
                     transactionId: txid,
                     address: claimAddress,
@@ -365,30 +409,37 @@ app.post('/', (req, res, next) => {
                   })
                 }).catch((err) => {
                 // catch banano send errors
-                  console.log(req.ip + ': Error sending banano: ' + err)
+                  loggingUtil(req.ip, claimAddress, `Error sending banano: ${err}`)
                   res.render('fail', { errorReason: err })
                 })
               } else {
               // reject image
-                console.log(req.ip + ': Not a banana from ' + claimAddress)
+                loggingUtil(req.ip, claimAddress, 'Not a banana')
                 claimsDB.updateOne({ address: claimAddress }, { $inc: { fails: 1 } }, { upsert: true })
                 res.render('fail', { errorReason: 'Not a banana. Results: ' + JSON.stringify(classificationResult) })
               }
               hashDB.insertOne({ hash: data, original: true, classification: classificationResult[0].className })
             }).catch((err) => {
             // catch imageClassification errors
-              console.log(req.ip + ': Error processing image from ' + claimAddress + ': ' + err)
+              loggingUtil(req.ip, claimAddress, `Error classifying image: ${err}`)
               res.render('fail', { errorReason: err })
             })
           } catch (decodeImageError) {
             res.render('fail', {
               errorReason: 'Invalid image. Must be valid PNG, JPEG, BMP, or GIF.'
             })
-            console.log(req.ip + ': Invalid image from ' + claimAddress)
+            loggingUtil(req.ip, claimAddress, 'Invalid image')
           }
         }
       }
     })
+  })
+})
+
+app.use((req, res, next) => {
+  res.status(404)
+  res.render('fail', {
+    errorReason: '404: Page not found'
   })
 })
 

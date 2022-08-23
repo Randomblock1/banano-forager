@@ -1,18 +1,14 @@
 include includes/head.pug
 body
-    .section
-        .container
-            h1.title(style='display:flex') Banano Forager
-                img(src='https://banano.cc/presskit/banano-icon.svg' width='40em' height='40em' style='margin-left:15px')
-            h2.subtitle 1 Banana = 1 Banano
-            article.message.is-warning
-                .message-header
-                    p You claimed too recently.
-                .message-body
-                    p(id='msgBody')
-                        
+    .section.container
+        article.message.is-warning
+            .message-header
+                p You claimed too recently.
+            .message-body
+                p(id='msgBody')
+                    
 
-            include includes/footer.pug
+include includes/footer.pug
 
 script.
     const localTime = new Date(#{cooldownTime}).toLocaleTimeString()

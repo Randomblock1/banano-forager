@@ -2,39 +2,39 @@ include includes/head.pug
 script(src="https://js.hcaptcha.com/1/api.js" async defer)
 body
     .section.container
-            .content
-                p DONATE HERE: #{faucetAddress}
-                p Current faucet balance: #{bananoBalance} BAN
-                p This is a Banano faucet that requires you to take a picture of a banana.
-                p Current reward rate: 1 Banana = #{faucetReward} BAN maximum
-                p You can claim once every #{cooldown/(1000*60)} minutes.
-                p The more confident the AI is that it sees a banana, the more BAN you will receive. Try to keep the banana as the main focus of the image.
-            form(method='POST' action='/' enctype="multipart/form-data")
-                .box
-                    .field
-                        label.label Banano Address
-                        .control.has-icons-left
-                            input.input(name='address' type='text' placeholder=faucetAddress)
-                            span.icon.is-small.is-left
-                                i.fas.fa-qrcode
-                        p.help Don't worry if you mistype it. The faucet double-checks.
+        .content
+            p DONATE HERE: #{faucetAddress}
+            p Current faucet balance: #{bananoBalance} BAN
+            p This is a Banano faucet that requires you to take a picture of a banana.
+            p Current reward rate: 1 Banana = #{faucetReward} BAN maximum
+            p You can claim once every #{cooldown/(1000*60)} minutes.
+            p The more confident the AI is that it sees a banana, the more BAN you will receive. Try to keep the banana as the main focus of the image.
+        form(method='POST' action='/' enctype="multipart/form-data")
+            .box
+                .field
+                    label.label Banano Address
+                    .control.has-icons-left
+                        input.input(name='address' type='text' placeholder=faucetAddress)
+                        span.icon.is-small.is-left
+                            i.fas.fa-qrcode
+                    p.help Don't worry if you mistype it. The faucet double-checks.
 
-                    .field
-                        label.label Banana Photo
-                        #fileInput.file.has-name.is-fullwidth
-                            label.file-label
-                                input.file-input(name="image" type="file" accept="image/png, image/jpeg, image/bmp, image/gif")
-                                span.file-cta
-                                    span.file-icon
-                                        i.fa-solid.fa-image
-                                    span.file-label Choose a file (5MB max)…
-                                span.file-name
-                        p.help Images are only temporarily stored, but the faucet keeps some info to prevent duplicates.
+                .field
+                    label.label Banana Photo
+                    #fileInput.file.has-name.is-fullwidth
+                        label.file-label
+                            input.file-input(name="image" type="file" accept="image/png, image/jpeg, image/bmp, image/gif")
+                            span.file-cta
+                                span.file-icon
+                                    i.fa-solid.fa-image
+                                span.file-label 5MB max…
+                            span.file-name
+                    p.help Images are only temporarily stored, but the faucet keeps some info to prevent duplicates. Accepts PNG, JPG, BMP, GIF.
 
-                    .h-captcha(data-sitekey=hcaptchaSiteKey)
+                .h-captcha(data-sitekey=hcaptchaSiteKey)
 
-                    .control.mt-3
-                        button.button.is-primary Submit
+                .control.mt-3
+                    button.button.is-primary Submit (may take a minute)
 
 include includes/footer.pug
 
