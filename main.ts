@@ -333,7 +333,6 @@ app.post('/', (req, res, next) => {
             await mobilenetModel.classify(tensorImage).then(async (classificationResult) => {
               tensorImage.dispose()
               console.log(req.ip + ': Image looks like ', classificationResult[0])
-              await hashDB.insertOne({ hash: data, original: true, classification: classificationResult[0].className })
               if (classificationResult[0].className === 'banana') {
               // reward based on confidence, may reduce impact of false positives
                 const reward = Number((settings.maxReward * classificationResult[0].probability).toFixed(2))
@@ -375,6 +374,7 @@ app.post('/', (req, res, next) => {
                 claimsDB.updateOne({ address: claimAddress }, { $inc: { fails: 1 } }, { upsert: true })
                 res.render('fail', { errorReason: 'Not a banana. Results: ' + JSON.stringify(classificationResult) })
               }
+              hashDB.insertOne({ hash: data, original: true, classification: classificationResult[0].className })
             }).catch((err) => {
             // catch imageClassification errors
               console.log(req.ip + ': Error processing image from ' + claimAddress + ': ' + err)
