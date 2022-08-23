@@ -18,12 +18,9 @@ ban_1picturessx4aedsf59gm6qjkm6e3od4384m1qpfnotgsuoczbmhdb3e1zkh
 
 ## To-do
 
-[x] Add captcha
-
-[x] Pretty UI
-
-[x] Docker/Heroku/etc deployment
-
-[x] Move hash table to MongoDB
-
-[ ] Proxy detection (check for Heroku's X-Forwarded-For[last], else use req.ip)
+- [x] Add captcha
+- [x] Pretty UI
+- [x] Docker/Heroku/etc deployment
+- [x] Move hash table to MongoDB
+- [x] Proxy detection (check for Cloudflare's CF-Connecting-IP, else use req.ip)
+- [ ] Static file serving (instead of file.io uploading)
