@@ -7,9 +7,9 @@ import { ready as tensorflowGetReady } from '@tensorflow/tfjs-node'
 import { decodeImage } from '@tensorflow/tfjs-node/dist/image.js'
 import { imageHash } from 'image-hash'
 import { ToadScheduler, SimpleIntervalJob, AsyncTask } from 'toad-scheduler'
-import axios from 'axios'
-import google from 'googlethis'
-import FormData from 'form-data'
+// import axios from 'axios'
+// import google from 'googlethis'
+// import FormData from 'form-data'
 import 'dotenv/config'
 import { verify } from 'hcaptcha'
 import { MongoClient } from 'mongodb'
@@ -153,18 +153,16 @@ function rawToBan (raw: number): number {
   return Number(raw / 100000000000000000000000000000)
 }
 
-async function uploadFile (fileToUpload: string) {
-  // TODO: use express.static() to serve files instead of uploading
-  // see https://stackoverflow.com/questions/15484350/serving-temporary-files-with-nodejs
-  const form = new FormData()
-  form.append('file', fs.createReadStream(fileToUpload))
-  form.append('expires', '5m')
-  form.append('maxDownloads', '1')
-  form.append('autoDelete', 'true')
+// async function uploadFile (fileToUpload: string) {
+//   const form = new FormData()
+//   form.append('file', fs.createReadStream(fileToUpload))
+//   form.append('expires', '5m')
+//   form.append('maxDownloads', '1')
+//   form.append('autoDelete', 'true')
 
-  const uploadResponse = await axios.postForm('https://file.io', form)
-  return 'https://file.io/' + uploadResponse.data.key
-}
+//   const uploadResponse = await axios.postForm('https://file.io', form)
+//   return 'https://file.io/' + uploadResponse.data.key
+// }
 
 let bananoBalance: string
 async function receiveDonations (): Promise<object> {
@@ -260,7 +258,6 @@ app.get('/stats', async (req, res) => {
     totalClaims: stats.totalClaims,
     totalSent: stats.totalSent,
     totalDupes: stats.totalDupes,
-    totalUnoriginal: stats.totalUnoriginal,
     totalDonations: stats.totalDonations,
     totalAddresses: addressCount,
     totalVisits: stats.visits
@@ -380,71 +377,72 @@ app.post('/', (req, res, next) => {
         claimsDB.updateOne({ address: claimAddress }, { $inc: { fails: 1 } }, { upsert: true })
         loggingUtil(ip, claimAddress, 'Duplicate image')
       } else {
-        const tempUrl = await uploadFile(files.image[0].filepath)
-        const imageMatches = await google.search(tempUrl, { ris: true })
-        if (imageMatches.results.length > 0) {
-          hashDB.insertOne({ hash: data, original: false })
-          res.render('fail', {
-            errorReason: 'Image is from the internet. Is it really that hard to photograph a banana?'
-          })
-          statsDB.updateOne({ type: 'totals' }, { $inc: { totalUnoriginal: 1 } }, { upsert: true })
-          claimsDB.updateOne({ address: claimAddress }, { $inc: { fails: 1 } }, { upsert: true })
-          loggingUtil(ip, claimAddress, 'Unoriginal image')
-        } else {
+        // DISABLED BECAUSE GOOGLE RATE LIMITS IMAGE SEARCHES HARD
+        // const tempUrl = await uploadFile(files.image[0].filepath)
+        // const imageMatches = await google.search(tempUrl, { ris: true })
+        // if (imageMatches.results.length > 0) {
+        //   hashDB.insertOne({ hash: data, original: false })
+        //   res.render('fail', {
+        //     errorReason: 'Image is from the internet. Is it really that hard to photograph a banana?'
+        //   })
+        //   statsDB.updateOne({ type: 'totals' }, { $inc: { totalUnoriginal: 1 } }, { upsert: true })
+        //   claimsDB.updateOne({ address: claimAddress }, { $inc: { fails: 1 } }, { upsert: true })
+        //   loggingUtil(ip, claimAddress, 'Unoriginal image')
+        // } else {
         // delete after processing
-          fs.rmSync(files.image[0].filepath)
-          // convert image to tensor
-          try {
-            const tensorImage = decodeImage(imageBuffer, 3, undefined, false)
-            // the fun stuff!
-            await mobilenetModel.classify(tensorImage).then(async (classificationResult) => {
-              tensorImage.dispose()
-              loggingUtil(ip, claimAddress, `Image looks like a ${classificationResult[0].className}`)
-              if (classificationResult[0].className === 'banana') {
+        fs.rmSync(files.image[0].filepath)
+        // convert image to tensor
+        try {
+          const tensorImage = decodeImage(imageBuffer, 3, undefined, false)
+          // the fun stuff!
+          await mobilenetModel.classify(tensorImage).then(async (classificationResult) => {
+            tensorImage.dispose()
+            loggingUtil(ip, claimAddress, `Image looks like a ${classificationResult[0].className}`)
+            if (classificationResult[0].className === 'banana') {
               // reward based on confidence, may reduce impact of false positives
-                const reward = Number((settings.maxReward * classificationResult[0].probability).toFixed(2))
-                // send banano
-                bananojs.bananoUtil.sendFromPrivateKey(
-                  bananojs.bananodeApi,
-                  // @ts-ignore
-                  settings.privateKey,
-                  claimAddress,
-                  banToRaw(reward),
-                  'ban_'
-                ).then(async (txid) => {
-                  claimsDB.updateOne({ address: claimAddress }, { $inc: { totalSent: reward, totalClaims: 1 }, $set: { address: claimAddress, lastClaim: new Date() } }, { upsert: true })
-                  statsDB.updateOne({ type: 'totals' }, { $inc: { totalSent: reward, totalClaims: 1 }, $set: { lastClaim: new Date() } }, { upsert: true })
-                  ipDB.updateOne({ ip }, { $inc: { totalSent: reward, totalClaims: 1 }, $set: { lastClaim: new Date() } }, { upsert: true })
-                  loggingUtil(ip, claimAddress, `Sent ${reward.toString()} banano with TXID ${txid}`)
-                  res.render('success', {
-                    transactionId: txid,
-                    address: claimAddress,
-                    amount: reward,
-                    result: classificationResult
-                  })
-                }).catch((err) => {
-                // catch banano send errors
-                  loggingUtil(ip, claimAddress, `Error sending banano: ${err}`)
-                  res.render('fail', { errorReason: err })
+              const reward = Number((settings.maxReward * classificationResult[0].probability).toFixed(2))
+              // send banano
+              bananojs.bananoUtil.sendFromPrivateKey(
+                bananojs.bananodeApi,
+                // @ts-ignore
+                settings.privateKey,
+                claimAddress,
+                banToRaw(reward),
+                'ban_'
+              ).then(async (txid) => {
+                claimsDB.updateOne({ address: claimAddress }, { $inc: { totalSent: reward, totalClaims: 1 }, $set: { address: claimAddress, lastClaim: new Date() } }, { upsert: true })
+                statsDB.updateOne({ type: 'totals' }, { $inc: { totalSent: reward, totalClaims: 1 }, $set: { lastClaim: new Date() } }, { upsert: true })
+                ipDB.updateOne({ ip }, { $inc: { totalSent: reward, totalClaims: 1 }, $set: { lastClaim: new Date() } }, { upsert: true })
+                loggingUtil(ip, claimAddress, `Sent ${reward.toString()} banano with TXID ${txid}`)
+                res.render('success', {
+                  transactionId: txid,
+                  address: claimAddress,
+                  amount: reward,
+                  result: classificationResult
                 })
-              } else {
+              }).catch((err) => {
+                // catch banano send errors
+                loggingUtil(ip, claimAddress, `Error sending banano: ${err}`)
+                res.render('fail', { errorReason: err })
+              })
+            } else {
               // reject image
-                loggingUtil(ip, claimAddress, 'Not a banana')
-                claimsDB.updateOne({ address: claimAddress }, { $inc: { fails: 1 } }, { upsert: true })
-                res.render('fail', { errorReason: 'Not a banana. Results: ' + JSON.stringify(classificationResult) })
-              }
-              hashDB.insertOne({ hash: data, original: true, classification: classificationResult[0].className })
-            }).catch((err) => {
+              loggingUtil(ip, claimAddress, 'Not a banana')
+              claimsDB.updateOne({ address: claimAddress }, { $inc: { fails: 1 } }, { upsert: true })
+              res.render('fail', { errorReason: 'Not a banana. Results: ' + JSON.stringify(classificationResult) })
+            }
+            hashDB.insertOne({ hash: data, original: true, classification: classificationResult[0].className })
+          }).catch((err) => {
             // catch imageClassification errors
-              loggingUtil(ip, claimAddress, `Error classifying image: ${err}`)
-              res.render('fail', { errorReason: err })
-            })
-          } catch (decodeImageError) {
-            res.render('fail', {
-              errorReason: 'Invalid image. Must be valid PNG, JPEG, BMP, or GIF.'
-            })
-            loggingUtil(ip, claimAddress, 'Invalid image')
-          }
+            loggingUtil(ip, claimAddress, `Error classifying image: ${err}`)
+            res.render('fail', { errorReason: err })
+          })
+        } catch (decodeImageError) {
+          res.render('fail', {
+            errorReason: 'Invalid image. Must be valid PNG, JPEG, BMP, or GIF.'
+          })
+          loggingUtil(ip, claimAddress, 'Invalid image')
+          // }
         }
       }
     })
