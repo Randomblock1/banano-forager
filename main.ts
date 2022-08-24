@@ -215,8 +215,7 @@ const task = new AsyncTask(
   'receive donations',
   async () => {
     try {
-      const result = await receiveDonations()
-      console.log('Checked for donations:', result)
+      await receiveDonations()
     } catch (err) {
       console.log('Error receiving banano: ' + err)
     }
