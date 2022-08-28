@@ -7,13 +7,14 @@ import { ready as tensorflowGetReady } from '@tensorflow/tfjs-node'
 import { decodeImage } from '@tensorflow/tfjs-node/dist/image.js'
 import { imageHash } from 'image-hash'
 import { ToadScheduler, SimpleIntervalJob, AsyncTask } from 'toad-scheduler'
-// import axios from 'axios'
-// import google from 'googlethis'
-// import FormData from 'form-data'
 import 'dotenv/config'
 import { verify } from 'hcaptcha'
 import { MongoClient } from 'mongodb'
 import fetch from 'node-fetch'
+// DISABLED DUE TO GOOGLE RATE LIMITING
+// import axios from 'axios'
+// import google from 'googlethis'
+// import FormData from 'form-data'
 
 const scheduler = new ToadScheduler()
 const app = express()
@@ -139,7 +140,7 @@ async function isProxy (ip: string) {
 function filterFunction ({ name, originalFilename, mimetype }: formidable.Part): boolean {
   // keep only images
   const file = { name, originalFilename, mimetype }
-  const regex = /^image\/(png|jpeg|bmp|gif)$/
+  const regex = /^image\/(png|jpeg)$/
   return regex.test(file.mimetype || '') // skipcq: JS-0382
 }
 
@@ -274,7 +275,9 @@ app.post('/', (req, res, next) => {
   // runs every time someone submits a form
   form.parse(req, async (err, fields, files: any) => {
     if (err !== null) {
-      next(err)
+      res.render('fail', {
+        message: 'Error parsing form: ' + err
+      })
       return
     }
     try {
@@ -361,6 +364,7 @@ app.post('/', (req, res, next) => {
         return
       }
     }
+
     // process image
     const imageBuffer = fs.readFileSync(files.image[0].filepath)
     imageHash({ data: imageBuffer }, 16, true, async (error: Error, data: string) => {
@@ -376,7 +380,7 @@ app.post('/', (req, res, next) => {
         claimsDB.updateOne({ address: claimAddress }, { $inc: { fails: 1 } }, { upsert: true })
         loggingUtil(ip, claimAddress, 'Duplicate image')
       } else {
-        // DISABLED BECAUSE GOOGLE RATE LIMITS IMAGE SEARCHES HARD
+        // DISABLED BECAUSE GOOGLE RATE LIMITS IMAGE SEARCHES A LOT
         // const tempUrl = await uploadFile(files.image[0].filepath)
         // const imageMatches = await google.search(tempUrl, { ris: true })
         // if (imageMatches.results.length > 0) {
