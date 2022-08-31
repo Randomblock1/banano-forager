@@ -110,7 +110,7 @@ function validateAddress (address: string): true | string {
  * @param req Express request object
  * @returns IP address
  */
-function getRealIp (req: express.Request) {
+function getRealIp (req: express.Request): string {
   const cloudflareRealIp = req.get('CF-Connecting-IP')
   let ip
   if (cloudflareRealIp !== undefined) {
@@ -126,7 +126,7 @@ function getRealIp (req: express.Request) {
  * @param ip IP address
  * @returns boolean
  */
-async function isProxy (ip: string) {
+async function isProxy (ip: string): Promise<boolean> {
   const response = await fetch('https://ipinfo.io/widget/demo/' + ip, {
     headers: {
       accept: '*/*',
@@ -235,7 +235,7 @@ async function updateBalance () {
  * @param address The banano address of user
  * @param message The message to log
  */
-function loggingUtil (ip: string, address: string, message: string) {
+function loggingUtil (ip: string, address: string, message: string): void {
   console.log(`${new Date().toISOString()} | ${ip}: ${address}: ${message}`)
 }
 
@@ -442,7 +442,7 @@ app.post('/', (req, res) => {
         try {
           const tensorImage = decodeImage(imageBuffer, 3, undefined, false)
           // the fun stuff!
-          await mobilenetModel.classify(tensorImage).then(async (classificationResult) => {
+          await mobilenetModel.classify(tensorImage).then((classificationResult) => {
             tensorImage.dispose()
             loggingUtil(ip, claimAddress, `Image looks like a ${classificationResult[0].className}`)
             if (classificationResult[0].className === 'banana') {
@@ -451,12 +451,12 @@ app.post('/', (req, res) => {
               // send banano
               bananojs.bananoUtil.sendFromPrivateKey(
                 bananojs.bananodeApi,
-                // @ts-ignore
+                // @ts-expect-error: This is defined
                 settings.privateKey,
                 claimAddress,
                 banToRaw(reward),
                 'ban_'
-              ).then(async (txid) => {
+              ).then((txid) => {
                 claimsDB.updateOne({ address: claimAddress }, { $inc: { totalSent: reward, totalClaims: 1 }, $set: { address: claimAddress, lastClaim: new Date() } }, { upsert: true })
                 statsDB.updateOne({ type: 'totals' }, { $inc: { totalSent: reward, totalClaims: 1 }, $set: { lastClaim: new Date() } }, { upsert: true })
                 ipDB.updateOne({ ip }, { $inc: { totalSent: reward, totalClaims: 1 }, $set: { lastClaim: new Date() } }, { upsert: true })
