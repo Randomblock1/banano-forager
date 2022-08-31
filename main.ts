@@ -91,6 +91,11 @@ const formidableOptions: formidable.Options = {
 }
 
 // FUNCTION DECLARATIONS //
+/**
+ * Make sure banano address is valid
+ * @param address Banano address
+ * @returns boolean or error message
+ */
 function validateAddress (address: string): true | string {
   const validationResult: { valid: boolean, message: string } = bananojs.bananoUtil.getBananoAccountValidationInfo(address)
   if (validationResult.valid) {
@@ -100,6 +105,11 @@ function validateAddress (address: string): true | string {
   }
 }
 
+/**
+ * Get user IP from behind reverse proxy
+ * @param req Express request object
+ * @returns IP address
+ */
 function getRealIp (req: express.Request) {
   const cloudflareRealIp = req.get('CF-Connecting-IP')
   let ip
@@ -111,6 +121,11 @@ function getRealIp (req: express.Request) {
   return ip
 }
 
+/**
+ * Checks if IP is a proxy
+ * @param ip IP address
+ * @returns boolean
+ */
 async function isProxy (ip: string) {
   const response = await fetch('https://ipinfo.io/widget/demo/' + ip, {
     headers: {
@@ -137,6 +152,9 @@ async function isProxy (ip: string) {
   }
 }
 
+/**
+ * Makes formidable drop unsupported files
+ */
 function filterFunction ({ name, originalFilename, mimetype }: formidable.Part): boolean {
   // keep only images
   const file = { name, originalFilename, mimetype }
@@ -144,11 +162,21 @@ function filterFunction ({ name, originalFilename, mimetype }: formidable.Part):
   return regex.test(file.mimetype || '') // skipcq: JS-0382
 }
 
+/**
+ * Convert banano to raw
+ * @param ban Banano amount
+ * @returns raw amount
+ */
 function banToRaw (ban: number): number {
   // turns out you can split banano, a lot
   return Number(ban * 100000000000000000000000000000)
 }
 
+/**
+ * Convert raw to banano
+ * @param raw Raw amount
+ * @returns Banano amount
+ */
 function rawToBan (raw: number): number {
   // turns out you can split banano, a lot
   return Number(raw / 100000000000000000000000000000)
@@ -166,12 +194,17 @@ function rawToBan (raw: number): number {
 // }
 
 let bananoBalance: string
+
+/**
+ * Receives banano asynchronously
+ * @returns bananojs.depositUtil.receivedResponse
+ */
 async function receiveDonations (): Promise<object> {
   const response = await bananojs.depositUtil.receive(
     console,
     bananojs.bananodeApi,
     bananoAccount,
-    // @ts-ignore
+    //  @ts-expect-error: program already exits if this is undefined
     settings.privateKey,
     representative,
     null,
@@ -185,12 +218,23 @@ async function receiveDonations (): Promise<object> {
   }
   return response
 }
+
+/**
+ * Returns the current balance of the faucet in banano
+ * @returns Current balance in banano
+ */
 async function updateBalance () {
   const rawBalance = await bananojs.bananodeApi.getAccountBalanceRaw(bananoAccount)
   bananoBalance = rawToBan(Number(rawBalance)).toFixed(2)
   return bananoBalance
 }
 
+/**
+ * Logs message with timestamp, IP, and address
+ * @param ip The IP of user
+ * @param address The banano address of user
+ * @param message The message to log
+ */
 function loggingUtil (ip: string, address: string, message: string) {
   console.log(`${new Date().toISOString()} | ${ip}: ${address}: ${message}`)
 }
@@ -218,7 +262,7 @@ const task = new AsyncTask(
     try {
       await receiveDonations()
     } catch (err) {
-      console.log('Error receiving banano: ' + err)
+      console.log('Error receiving banano: ' + String(err))
     }
   })
 
@@ -270,7 +314,7 @@ app.get('/banano.json', (req, res) => {
 })
 
 // set up POST endpoint at /submit
-app.post('/', (req, res, next) => {
+app.post('/', (req, res) => {
   const form = formidable(formidableOptions)
   // runs every time someone submits a form
   form.parse(req, async (err, fields, files: any) => {
@@ -452,7 +496,7 @@ app.post('/', (req, res, next) => {
   })
 })
 
-app.use((req, res, next) => {
+app.use((req, res) => {
   res.status(404)
   res.render('fail', {
     errorReason: '404: Page not found'
