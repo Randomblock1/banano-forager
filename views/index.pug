@@ -3,11 +3,11 @@ script(src="https://js.hcaptcha.com/1/api.js" async defer)
 body
     .section.container
         .content
-            p DONATE HERE: #{faucetAddress}
+            a(href='banano:' + faucetAddress) Please donate to the faucet: #{faucetAddress}
             p Current faucet balance: #{bananoBalance} BAN
-            p This is a Banano faucet that requires you to take a picture of a banana.
             p Current reward rate: 1 Banana = #{faucetReward} BAN maximum
             p You can claim once every #{cooldown/(1000*60)} minutes.
+            p This is a Banano faucet that requires you to take a picture of a banana.
             p The more confident the AI is that it sees a banana, the more BAN you will receive. Try to keep the banana as the main focus of the image.
         form(method='POST' action='/' enctype="multipart/form-data")
             .box
@@ -29,7 +29,7 @@ body
                                     i.fa-solid.fa-image
                                 span.file-label 5MB max…
                             span.file-name
-                    p.help Images are only temporarily stored, but the faucet keeps some info to prevent duplicates. Accepts PNG and JPG.
+                    p.help Images are deleted when processed. Accepts PNG and JPG. Anything else will fail.
 
                 .h-captcha(data-sitekey=hcaptchaSiteKey)
 
