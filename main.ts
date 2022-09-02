@@ -447,7 +447,7 @@ app.post('/', (req, res) => {
           // the fun stuff!
           await mobilenetModel.classify(tensorImage).then((classificationResult) => {
             tensorImage.dispose()
-            loggingUtil(ip, claimAddress, `Image looks like a ${classificationResult[0].className}`)
+            loggingUtil(ip, claimAddress, 'Image classification result: ' + JSON.stringify(classificationResult))
             const guess = classificationResult.find(guess => guess.className === 'banana')
             if (guess) {
               // reward based on confidence, may reduce impact of false positives
@@ -483,7 +483,7 @@ app.post('/', (req, res) => {
               claimsDB.updateOne({ address: claimAddress }, { $inc: { fails: 1 } }, { upsert: true })
               res.render('fail', { errorReason: 'Not a banana. Results: ' + JSON.stringify(classificationResult) })
             }
-            hashDB.insertOne({ hash: data, original: true, classification: classificationResult[0].className })
+            hashDB.insertOne({ hash: data, original: true, classification: classificationResult })
           }).catch((err) => {
             // catch imageClassification errors
             loggingUtil(ip, claimAddress, `Error classifying image: ${err}`)
