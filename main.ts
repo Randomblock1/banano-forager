@@ -436,8 +436,6 @@ app.post('/', (req, res) => {
         //   claimsDB.updateOne({ address: claimAddress }, { $inc: { fails: 1 } }, { upsert: true })
         //   loggingUtil(ip, claimAddress, 'Unoriginal image')
         // } else {
-        // delete after processing
-        fs.rmSync(files.image[0].filepath)
         // convert image to tensor
         try {
           const tensorImage = decodeImage(imageBuffer, 3, undefined, false)
@@ -457,6 +455,7 @@ app.post('/', (req, res) => {
                 banToRaw(reward),
                 'ban_'
               ).then((txid) => {
+                // log success
                 claimsDB.updateOne({ address: claimAddress }, { $inc: { totalSent: reward, totalClaims: 1 }, $set: { address: claimAddress, lastClaim: new Date() } }, { upsert: true })
                 statsDB.updateOne({ type: 'totals' }, { $inc: { totalSent: reward, totalClaims: 1 }, $set: { lastClaim: new Date() } }, { upsert: true })
                 ipDB.updateOne({ ip }, { $inc: { totalSent: reward, totalClaims: 1 }, $set: { lastClaim: new Date() } }, { upsert: true })
@@ -473,7 +472,7 @@ app.post('/', (req, res) => {
                 res.render('fail', { errorReason: err })
               })
             } else {
-              // reject image
+              // reject non-bananas
               loggingUtil(ip, claimAddress, 'Not a banana')
               claimsDB.updateOne({ address: claimAddress }, { $inc: { fails: 1 } }, { upsert: true })
               res.render('fail', { errorReason: 'Not a banana. Results: ' + JSON.stringify(classificationResult) })
@@ -484,14 +483,17 @@ app.post('/', (req, res) => {
             loggingUtil(ip, claimAddress, `Error classifying image: ${err}`)
             res.render('fail', { errorReason: err })
           })
-        } catch (decodeImageError) {
+        } catch (err) {
+          // catch decodeImage errors
           res.render('fail', {
             errorReason: 'Invalid image. Must be valid PNG, JPEG, BMP, or GIF.'
           })
-          loggingUtil(ip, claimAddress, 'Invalid image')
+          loggingUtil(ip, claimAddress, 'Invalid image. ' + err)
           // }
         }
       }
+      // delete after processing, even if it fails
+      fs.rmSync(files.image[0].filepath)
     })
   })
 })
