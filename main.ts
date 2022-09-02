@@ -318,10 +318,12 @@ app.post('/', (req, res) => {
   const form = formidable(formidableOptions)
   // runs every time someone submits a form
   form.parse(req, async (err, fields, files: any) => {
+    const ip = getRealIp(req)
     if (err !== null) {
       res.render('fail', {
-        message: 'Error parsing form: ' + err
+        errorReason: 'Error parsing form: ' + err
       })
+      console.log(ip + ': Bad image')
       return
     }
     try {
@@ -343,7 +345,6 @@ app.post('/', (req, res) => {
       })
       return
     }
-    const ip = getRealIp(req)
     console.log(ip + ': Received data: ' + JSON.stringify(fields))
     // console.log(ip + ': Received file: ' + files.image)
 
@@ -413,7 +414,11 @@ app.post('/', (req, res) => {
     const imageBuffer = fs.readFileSync(files.image[0].filepath)
     imageHash({ data: imageBuffer }, 16, true, async (error: Error, data: string) => {
       if (error) {
-        throw error
+        res.render('fail', {
+          errorReason: error
+        })
+        loggingUtil(ip, claimAddress, 'Error hashing image: ' + error)
+        return
       }
       const hashResults = await hashDB.find({ hash: data }).toArray()
       if (hashResults.length > 0) {
