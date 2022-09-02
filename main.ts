@@ -448,9 +448,10 @@ app.post('/', (req, res) => {
           await mobilenetModel.classify(tensorImage).then((classificationResult) => {
             tensorImage.dispose()
             loggingUtil(ip, claimAddress, `Image looks like a ${classificationResult[0].className}`)
-            if (classificationResult[0].className === 'banana') {
+            const guess = classificationResult.find(guess => guess.className === 'banana')
+            if (guess) {
               // reward based on confidence, may reduce impact of false positives
-              const reward = Number((settings.maxReward * classificationResult[0].probability).toFixed(2))
+              const reward = Number((settings.maxReward * guess.probability).toFixed(2))
               // send banano
               bananojs.bananoUtil.sendFromPrivateKey(
                 bananojs.bananodeApi,
