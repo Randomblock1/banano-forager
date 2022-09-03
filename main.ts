@@ -472,6 +472,7 @@ app.post('/', (req, res) => {
                   amount: reward,
                   result: classificationResult
                 })
+                updateBalance()
               }).catch((err) => {
                 // catch banano send errors
                 loggingUtil(ip, claimAddress, `Error sending banano: ${err}`)
