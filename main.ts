@@ -300,7 +300,7 @@ app.get('/stats', async (req, res) => {
   res.render('stats', {
     lastClaim: stats.lastClaim,
     totalClaims: stats.totalClaims,
-    totalSent: stats.totalSent,
+    totalSent: stats.totalSent.toFixed(2),
     totalDupes: stats.totalDupes,
     totalDonations: stats.totalDonations,
     totalAddresses: addressCount,
