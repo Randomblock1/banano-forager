@@ -282,10 +282,8 @@ async function isUnopened (address: string): Promise<boolean> {
 bananojs.bananodeApi.setUrl(settings.node)
 const publicKey = await bananojs.bananoUtil.getPublicKey(settings.privateKey)
 const bananoAccount = bananojs.bananoUtil.getAccount(publicKey, 'ban_')
-let representative = await bananojs.bananodeApi.getAccountRepresentative(bananoAccount)
-if (!representative) {
-  representative = bananoAccount
-}
+const representative = 'ban_19potasho7ozny8r1drz3u3hb3r97fw4ndm4hegdsdzzns1c3nobdastcgaa' // JungleTV representative
+
 await updateBalance()
 
 // load mobilenet model once ready
