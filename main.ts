@@ -257,7 +257,7 @@ function loggingUtil (ip: string, address: string, message: string): void {
 
 // copied from https://github.com/jetstream0/Banano-Faucet/blob/master/banano.js
 async function addressRelatedToBlacklist (addr: string, blacklistedAddresses: string[]): Promise<boolean> {
-  const accountHistory = (await bananojs.getAccountHistory(addr, -1)).history
+  const accountHistory = (await bananojs.getAccountHistory(addr, -1))
   if (accountHistory.history) {
     for (let i = 0; i < accountHistory.history.length; i++) {
       if (accountHistory.history[i].type === 'send' && blacklistedAddresses.includes(accountHistory.history[i].account)) {
