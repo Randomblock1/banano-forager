@@ -447,7 +447,7 @@ app.post('/', (req, res) => {
     }
 
     // process image
-    const imageBuffer = await sharp(files.image[0].filepath).resize(224, 224, { fit: 'contain' }).toBuffer()
+    const imageBuffer = await sharp(files.image[0].filepath, { failOn: 'none' }).resize(224, 224, { fit: 'contain' }).toBuffer()
     imageHash({ data: imageBuffer }, 16, true, async (error: Error, data: string) => {
       if (error) {
         res.render('fail', {
