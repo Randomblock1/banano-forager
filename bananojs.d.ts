@@ -6,26 +6,35 @@
 
 declare module '@bananocoin/bananojs' {
 
-    declare namespace Main {
+    /**
+     * Sets the Bananode Api (useful for overriding some methods)
+     * @param _bananodeApi - the new bananodeApi
+     * @returns returns nothing.
+     */
+    function setBananodeApi(_bananodeApi: string): undefined;
+    /**
+     * Sets the Bananode Api Authorization
+     * @param auth - the new authorization
+     * @returns returns nothing.
+     */
+    function setAuth(auth: string): undefined;
+    /**
+     * Sets the URL to use for the node behind the Bananode Api
+     * @param url - the new url
+     * @returns returns nothing.
+     */
+    function setBananodeApiUrl(url: string): undefined;
         /**
-         * Sets the Bananode Api (useful for overriding some methods)
-         * @param _bananodeApi - the new bananodeApi
-         * @returns returns nothing.
-         */
-        function setBananodeApi(_bananodeApi: string): undefined;
-        /**
-         * Sets the Bananode Api Authorization
-         * @param auth - the new authorization
-         * @returns returns nothing.
-         */
-        function setAuth(auth: string): undefined;
-        /**
-         * Sets the URL to use for the node behind the Bananode Api
-         * @param url - the new url
-         * @returns returns nothing.
-         */
-        function setBananodeApiUrl(url: string): undefined;
-    }
+     * Get the history for an account.
+     *
+     * Calls {@link https://docs.nano.org/commands/rpc-protocol/#account_history}
+     * @param account - the account to use.
+     * @param count - the count to use (use -1 for all).
+     * @param head - the head to start at (optional).
+     * @param raw - if true, return raw history (optional).
+     * @returns the account's history.
+     */
+    function getAccountHistory(account: string, count: number, head?: string, raw?: string): Promise<any>;
 
     declare namespace bananoUtil {
         /**
@@ -426,17 +435,6 @@ declare module '@bananocoin/bananojs' {
          * @returns the account's balances, in raw.
          */
         function getAccountsBalances(accounts: string_array): Promise<object>;
-        /**
-         * Get the history for an account.
-         *
-         * Calls {@link https://docs.nano.org/commands/rpc-protocol/#account_history}
-         * @param account - the account to use.
-         * @param count - the count to use (use -1 for all).
-         * @param head - the head to start at (optional).
-         * @param raw - if true, return raw history (optional).
-         * @returns the account's history.
-         */
-        function getAccountHistory(account: string, count: number, head: string, raw: string): Promise<object>;
         /**
          * Get the account info for an account.
          *
