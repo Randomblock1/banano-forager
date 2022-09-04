@@ -128,25 +128,17 @@ function getRealIp (req: express.Request): string {
  * @returns boolean
  */
 async function isProxy (ip: string): Promise<boolean> {
-  const response = await fetch('https://ipinfo.io/widget/demo/' + ip, {
+  const response = await fetch('https://check.getipintel.net/check.php?ip=' + ip + '&format=json&flags=m', {
     headers: {
-      accept: '*/*',
-      'accept-language': 'en-US,en;q=0.9',
-      'content-type': 'application/json',
-      'sec-fetch-dest': 'empty',
-      'sec-fetch-mode': 'cors',
-      'sec-fetch-site': 'same-origin',
-      cookie: 'flash=',
-      Referer: 'https://ipinfo.io/',
-      'Referrer-Policy': 'strict-origin-when-cross-origin'
+      accept: '*/*'
     },
     body: null,
     method: 'GET'
   })
   const body = await response.text()
   const json = JSON.parse(body)
-  const proxyData = json.data.privacy
-  if (Object.values(proxyData).includes(true)) {
+  const proxyData = json.result
+  if (proxyData === 1) {
     return true
   } else {
     return false
@@ -346,7 +338,7 @@ app.post('/', (req, res) => {
       })
       return
     }
-    console.log(ip + ': Received data: ' + JSON.stringify(fields))
+    console.log(ip + ': Received address: ' + JSON.stringify(fields.address))
     // console.log(ip + ': Received file: ' + files.image)
 
     const claimAddress = fields.address[0]
@@ -421,6 +413,7 @@ app.post('/', (req, res) => {
         loggingUtil(ip, claimAddress, 'Error hashing image: ' + error)
         return
       }
+      loggingUtil(ip, claimAddress, 'Image hash: ' + data)
       const hashResults = await hashDB.find({ hash: data }).toArray()
       if (hashResults.length > 0) {
         res.render('fail', {
