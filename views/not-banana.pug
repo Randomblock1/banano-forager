@@ -1,0 +1,12 @@
+include includes/head.pug
+body
+    .section.container
+        article.message.is-danger
+            .message-header
+                p That's not a banana.
+            .message-body
+                p Or maybe it is. Try again with a different photo in better lighting, and with a square aspect ratio.
+                p (Yes, that really helps.)
+                p Details: #{errorReason}
+
+include includes/footer.pug

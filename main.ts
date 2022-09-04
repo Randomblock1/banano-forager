@@ -37,7 +37,7 @@ const ipDB = dbClient.db('banano-forager').collection('ips')
 const hcaptchaSiteKey = process.env.HCAPTCHA_SITE_KEY
 const hcaptchaSecret = process.env.HCAPTCHA_SECRET_KEY
 
-// copied from prussian's banano faucet
+// copied from prussia's banano faucet
 const blacklist = ['ban_3qyp5xjybqr1go8xb1847tr6e1ujjxdrc4fegt1rzhmcmbtntio385n35nju', 'ban_1yozd3rq15fq9eazs91edxajz75yndyt5bpds1xspqfjoor9bdc1saqrph1w', 'ban_1894qgm8jym5xohwkngsy5czixajk5apxsjowi83pz9g6zrfo1nxo4mmejm9', 'ban_38jyaej59qs5x3zim7t4pw5dwixibkjw48tg1t3i9djyhtjf3au7c599bmg3', 'ban_3a68aqticd6wup99zncicrbkuaonypzzkfmmn66bxexfmw1ckf3ewo3fmtm9', 'ban_3f9j7bw9z71gwjo7bwgpfcmkg7k8w7y3whzc71881yrmpwz9e6c8g4gq4puj', 'ban_3rdjcqpm3j88bunqa3ge69nzdzx5a6nqumzc4ei3t1uwg3ciczw75xqxb4ac', 'ban_3w5uwibucuxh9psbpi9rp9qnikh9gywjc94cyp5rxirzsr5mtk5gbr5athoc', 'ban_1pi3knekobemmas387mbq44f9iq9dzfmuodoyoxbs38eh5yqtjmy1imxop6m', 'ban_1awbxp5y7r97hmc1oons5z5nirgyny7jenxcn33ehhzjmotf1pnuoopousur', 'ban_1benisxqto7mbod6ff6u6nugr4ehp5r47n3eyk5ki1m4z4j55txcgai8g8m4']
 
 if (!hcaptchaSiteKey) {
@@ -517,9 +517,9 @@ app.post('/', (req, res) => {
               })
             } else {
               // reject non-bananas
-              loggingUtil(ip, claimAddress, 'Not a banana')
+              loggingUtil(ip, claimAddress, 'Not a banana.')
               claimsDB.updateOne({ address: claimAddress }, { $inc: { fails: 1 } }, { upsert: true })
-              res.render('fail', { errorReason: 'Not a banana. Results: ' + JSON.stringify(classificationResult) })
+              res.render('not-banana', { errorReason: 'Not a banana. Results: ' + JSON.stringify(classificationResult) })
             }
             hashDB.insertOne({ hash: data, original: true, classification: classificationResult })
           }).catch((err) => {
