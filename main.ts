@@ -11,6 +11,7 @@ import 'dotenv/config'
 import { verify } from 'hcaptcha'
 import { MongoClient } from 'mongodb'
 import fetch from 'node-fetch'
+import sharp from 'sharp'
 // DISABLED DUE TO GOOGLE RATE LIMITING
 // import axios from 'axios'
 // import google from 'googlethis'
@@ -252,7 +253,7 @@ await updateBalance()
 
 // load mobilenet model once ready
 const mobilenetModel = await tensorflowGetReady().then(_ => {
-  return mobilenet.load({ version: 2, alpha: 1 })
+  return mobilenet.load({ version: 2, alpha: 0.75 })
 })
 
 // receive donations every 15 minutes
@@ -411,7 +412,7 @@ app.post('/', (req, res) => {
     }
 
     // process image
-    const imageBuffer = fs.readFileSync(files.image[0].filepath)
+    const imageBuffer = await sharp(files.image[0].filepath).resize(224, 224, { fit: 'contain' }).toBuffer()
     imageHash({ data: imageBuffer }, 16, true, async (error: Error, data: string) => {
       if (error) {
         res.render('fail', {
