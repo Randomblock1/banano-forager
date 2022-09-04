@@ -383,10 +383,20 @@ app.post('/', (req, res) => {
       })
       return
     }
-    console.log(ip + ': Received address: ' + JSON.stringify(fields.address))
+    // console.log(ip + ': Received address: ' + JSON.stringify(fields.address))
     // console.log(ip + ': Received file: ' + files.image)
 
     const claimAddress = fields.address[0]
+
+    // verify address
+    const addressVerification = validateAddress(claimAddress)
+    if (addressVerification !== true) {
+      res.render('fail', {
+        errorReason: 'Invalid address, reason: ' + addressVerification
+      })
+      console.log(ip + ': Invalid address: ' + addressVerification)
+      return
+    }
 
     // verify captcha
     const captchaResponse = fields['h-captcha-response'][0]
@@ -400,17 +410,7 @@ app.post('/', (req, res) => {
       res.render('fail', {
         errorReason: 'Invalid captcha.'
       })
-      console.log(ip + ': Invalid captcha')
-      return
-    }
-
-    // verify address
-    const addressVerification = validateAddress(claimAddress)
-    if (addressVerification !== true) {
-      res.render('fail', {
-        errorReason: 'Invalid address, reason: ' + addressVerification
-      })
-      console.log(ip + ': Invalid address: ' + addressVerification)
+      loggingUtil(ip, claimAddress, 'Invalid captcha')
       return
     }
 
