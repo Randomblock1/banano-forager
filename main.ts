@@ -255,7 +255,7 @@ function loggingUtil (ip: string, address: string, message: string): void {
   }
 }
 
-async function addressTooNew (accountHistory: any): Promise<boolean> {
+async function isAddressTooNew (accountHistory: any): Promise<boolean> {
   if (accountHistory.history[accountHistory.history.length - 1].local_timestamp < (new Date().getTime() / 1000) - 30 * 24 * 60 * 60) {
     return true
   } else {
@@ -264,7 +264,7 @@ async function addressTooNew (accountHistory: any): Promise<boolean> {
 }
 
 // copied from https://github.com/jetstream0/Banano-Faucet/blob/master/banano.js
-async function addressBanned (address: string, accountHistory: any, bannedAddresses: string[]): Promise<boolean> {
+async function isAddressBanned (address: string, accountHistory: any, bannedAddresses: string[]): Promise<boolean> {
   if (bannedAddresses.includes(address)) return true
   if (accountHistory.history) {
     for (let i = 0; i < accountHistory.history.length; i++) {
@@ -277,7 +277,7 @@ async function addressBanned (address: string, accountHistory: any, bannedAddres
 }
 
 // copied from https://github.com/jetstream0/Banano-Faucet/blob/master/banano.js
-async function isUnopened (accountHistory: any): Promise<boolean> {
+async function isAddressUnopened (accountHistory: any): Promise<boolean> {
   if (accountHistory.history === '') {
     return true
   } else {
@@ -425,21 +425,21 @@ app.post('/', (req, res) => {
     // because I need a solution that works (people are already abusing it)
     // check for brand new accounts
     const accountHistory = (await bananojs.getAccountHistory(claimAddress, -1))
-    if (await isUnopened(accountHistory)) {
+    if (await isAddressUnopened(accountHistory)) {
       res.render('fail', {
         errorReason: 'Address has no history.'
       })
       loggingUtil(ip, claimAddress, 'Address has no history')
       return
     }
-    if (await addressTooNew(accountHistory)) {
+    if (await isAddressTooNew(accountHistory)) {
       res.render('fail', {
         errorReason: 'Address is too new. Your address must be at least 1 month old.'
       })
       loggingUtil(ip, claimAddress, 'Address is too new')
       return
     }
-    if (await addressBanned(claimAddress, accountHistory, blacklist)) {
+    if (await isAddressBanned(claimAddress, accountHistory, blacklist)) {
       res.render('fail', {
         errorReason: 'Address blacklisted. If this is in error, please contact me.'
       })
