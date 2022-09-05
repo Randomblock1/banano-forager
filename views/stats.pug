@@ -9,6 +9,13 @@ body
             p Donations received: #{totalDonations}
             p Main page visits: #{totalVisits}
             p Unique addresses that claimed from this faucet: #{totalAddresses}
-            p Banned addresses (tried to cheat): #{totalBanned}
+            br
+            p Wall of Shame (people that tried to cheat)
+            p u/davis530 - it's getting annoying at this point
+            p some guy in Ukraine - I hope you win the war but now I have to block an entire ISP
+            p all #{bannedAddresses.length} banned addresses:
+            div.wrapper(style='overflow:hidden; overflow-x: scroll; height: 40px;')
+                p #{bannedAddresses}
+
 
 include includes/footer.pug

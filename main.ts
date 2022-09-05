@@ -342,7 +342,7 @@ app.get('/stats', async (req, res) => {
     totalDonations: stats.totalDonations,
     totalAddresses: addressCount,
     totalVisits: stats.visits,
-    totalBanned: blacklist.length
+    bannedAddresses: blacklist
   })
 })
 
@@ -479,7 +479,7 @@ app.post('/', (req, res) => {
       const hashResults = await hashDB.find({ hash: data }).toArray()
       if (hashResults.length > 0) {
         res.render('fail', {
-          errorReason: 'Image already uploaded'
+          errorReason: 'Duplicate image. Is it really that hard to take a picture of a banana?'
         })
         statsDB.updateOne({ type: 'totals' }, { $inc: { totalDupes: 1 } }, { upsert: true })
         claimsDB.updateOne({ address: claimAddress }, { $inc: { fails: 1 } }, { upsert: true })
