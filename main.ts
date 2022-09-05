@@ -133,7 +133,7 @@ function getRealIp (req: express.Request): string {
  * @returns boolean
  */
 async function isProxy (ip: string): Promise<boolean> {
-  const response = await fetch('https://check.getipintel.net/check.php?ip=' + ip + '&format=json&flags=m', {
+  const response = await fetch('https://check.getipintel.net/check.php?ip=' + ip + '&format=json', {
     headers: {
       accept: '*/*'
     },
@@ -143,7 +143,7 @@ async function isProxy (ip: string): Promise<boolean> {
   const body = await response.text()
   const json = JSON.parse(body)
   const proxyData = json.result
-  if (proxyData === 1) {
+  if (proxyData > 0.99) {
     return true
   } else {
     return false
@@ -435,9 +435,9 @@ app.post('/', (req, res) => {
     if (await isProxy(ip)) {
       res.status(403)
       res.render('fail', {
-        errorReason: 'Proxies are not allowed'
+        errorReason: 'Bad IP. Are you using a proxy?'
       })
-      loggingUtil(ip, claimAddress, 'Used a proxy')
+      loggingUtil(ip, claimAddress, 'Bad IP')
       return
     }
 
