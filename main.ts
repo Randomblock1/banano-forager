@@ -256,7 +256,7 @@ function loggingUtil (ip: string, address: string, message: string): void {
 }
 
 async function isAddressTooNew (accountHistory: any): Promise<boolean> {
-  if (accountHistory.history[accountHistory.history.length - 1].local_timestamp < (new Date().getTime() / 1000) - 30 * 24 * 60 * 60) {
+  if (accountHistory.history[accountHistory.history.length - 1].local_timestamp < (new Date().getTime() / 1000) - 14 * 24 * 60 * 60) {
     return true
   } else {
     return false
@@ -434,7 +434,7 @@ app.post('/', (req, res) => {
     }
     if (await isAddressTooNew(accountHistory)) {
       res.render('fail', {
-        errorReason: 'Address is too new. Your address must be at least 1 month old.'
+        errorReason: 'Address is too new. Your address must be at least 2 weeks old.'
       })
       loggingUtil(ip, claimAddress, 'Address is too new')
       return
