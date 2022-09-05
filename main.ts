@@ -549,7 +549,7 @@ app.post('/', (req, res) => {
         } catch (err) {
           // catch decodeImage errors
           res.render('fail', {
-            errorReason: 'Invalid image. Must be valid PNG, JPEG, BMP, or GIF.'
+            errorReason: 'Invalid image. Must be valid PNG or JPEG.'
           })
           loggingUtil(ip, claimAddress, 'Invalid image. ' + err)
           // }
