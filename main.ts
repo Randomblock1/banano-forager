@@ -261,7 +261,7 @@ async function addressBanned (address: string, bannedAddresses: string[]): Promi
   const accountHistory = (await bananojs.getAccountHistory(address, -1))
   if (accountHistory.history) {
     for (let i = 0; i < accountHistory.history.length; i++) {
-      if (accountHistory.history[i].type === 'send' && bannedAddresses.includes(accountHistory.history[i].account)) {
+      if (bannedAddresses.includes(accountHistory.history[i].account)) {
         return true
       }
     }
