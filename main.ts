@@ -296,7 +296,7 @@ await updateBalance()
 
 // load mobilenet model once ready
 const mobilenetModel = await tensorflowGetReady().then(_ => {
-  return mobilenet.load({ version: 2, alpha: 0.75 })
+  return mobilenet.load({ version: 2, alpha: 1 })
 })
 
 // receive donations every 15 minutes
