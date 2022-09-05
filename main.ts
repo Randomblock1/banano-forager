@@ -256,7 +256,7 @@ function loggingUtil (ip: string, address: string, message: string): void {
 }
 
 async function isAddressTooNew (accountHistory: any): Promise<boolean> {
-  if (accountHistory.history[accountHistory.history.length - 1].local_timestamp < (new Date().getTime() / 1000) - 14 * 24 * 60 * 60) {
+  if (accountHistory.history[accountHistory.history.length - 1].local_timestamp > (new Date().getTime() / 1000) - 14 * 24 * 60 * 60) {
     return true
   } else {
     return false
