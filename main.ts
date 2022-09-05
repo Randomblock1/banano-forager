@@ -255,10 +255,17 @@ function loggingUtil (ip: string, address: string, message: string): void {
   }
 }
 
+async function addressTooNew (accountHistory: any): Promise<boolean> {
+  if (accountHistory.history[accountHistory.history.length - 1].local_timestamp < (new Date().getTime() / 1000) - 30 * 24 * 60 * 60) {
+    return true
+  } else {
+    return false
+  }
+}
+
 // copied from https://github.com/jetstream0/Banano-Faucet/blob/master/banano.js
-async function addressBanned (address: string, bannedAddresses: string[]): Promise<boolean> {
+async function addressBanned (address: string, accountHistory: any, bannedAddresses: string[]): Promise<boolean> {
   if (bannedAddresses.includes(address)) return true
-  const accountHistory = (await bananojs.getAccountHistory(address, -1))
   if (accountHistory.history) {
     for (let i = 0; i < accountHistory.history.length; i++) {
       if (bannedAddresses.includes(accountHistory.history[i].account)) {
@@ -270,12 +277,12 @@ async function addressBanned (address: string, bannedAddresses: string[]): Promi
 }
 
 // copied from https://github.com/jetstream0/Banano-Faucet/blob/master/banano.js
-async function isUnopened (address: string): Promise<boolean> {
-  const accountHistory = await bananojs.getAccountHistory(address, -1)
+async function isUnopened (accountHistory: any): Promise<boolean> {
   if (accountHistory.history === '') {
     return true
+  } else {
+    return false
   }
-  return false
 }
 
 // INITIALIZATION //
@@ -417,14 +424,22 @@ app.post('/', (req, res) => {
     // copied from https://github.com/jetstream0/Banano-Faucet/blob/master/banano.js
     // because I need a solution that works (people are already abusing it)
     // check for brand new accounts
-    if (await isUnopened(claimAddress)) {
+    const accountHistory = (await bananojs.getAccountHistory(claimAddress, -1))
+    if (await isUnopened(accountHistory)) {
       res.render('fail', {
-        errorReason: 'Address has no history'
+        errorReason: 'Address has no history.'
       })
       loggingUtil(ip, claimAddress, 'Address has no history')
       return
     }
-    if (await addressBanned(claimAddress, blacklist)) {
+    if (await addressTooNew(accountHistory)) {
+      res.render('fail', {
+        errorReason: 'Address is too new. Your address must be at least 1 month old.'
+      })
+      loggingUtil(ip, claimAddress, 'Address is too new')
+      return
+    }
+    if (await addressBanned(claimAddress, accountHistory, blacklist)) {
       res.render('fail', {
         errorReason: 'Address blacklisted. If this is in error, please contact me.'
       })
