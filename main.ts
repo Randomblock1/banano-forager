@@ -244,14 +244,14 @@ async function updateBalance () {
 
 /**
  * Logs message with timestamp, IP, and address
- * @param ip The IP of user
- * @param address The banano address of user
- * @param message The message to log
+ * @param firstParam The IP of user
+ * @param secondParam The banano address of user
+ * @param mainMessage The message to log
  */
-function loggingUtil (ip: string, address: string, message: string): void {
-  console.log(`${new Date().toISOString()} | ${ip}: ${address}: ${message}`)
+function loggingUtil (firstParam: string, secondParam: string, mainMessage: string): void {
+  console.log(`${new Date().toISOString()} | ${firstParam}: ${secondParam}: ${mainMessage}`)
   if (webhookUrl !== undefined) {
-    sendWebhook(webhookUrl, `${ip}: ${address}: ${message}`)
+    sendWebhook(webhookUrl, `${firstParam}: ${secondParam}: ${mainMessage}`)
   }
 }
 
@@ -363,6 +363,12 @@ app.post('/', (req, res) => {
   const form = formidable(formidableOptions)
   // runs every time someone submits a form
   form.parse(req, async (err, fields, files: any) => {
+    if (parseFloat(bananoBalance) <= settings.maxReward) {
+      res.render('fail', {
+        message: 'Faucet is currently dry! Please consider donating.'
+      })
+      loggingUtil('ERROR', 'CRITICAL', 'Faucet is dry!')
+    }
     const ip = getRealIp(req)
     if (err !== null) {
       res.render('fail', {

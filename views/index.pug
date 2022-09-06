@@ -3,7 +3,8 @@ script(src="https://js.hcaptcha.com/1/api.js" async defer)
 body
     .section.container
         .content
-            a(href='banano:' + faucetAddress) Please donate to the faucet: #{faucetAddress}
+            a(href='banano:' + faucetAddress)  Click to donate in Banano wallet
+            p Faucet address: #{faucetAddress}
             p Current faucet balance: #{bananoBalance} BAN
             p Current reward rate: 1 Banana = #{faucetReward} BAN maximum
             p You can claim once every #{cooldown/(1000*60)} minutes.
