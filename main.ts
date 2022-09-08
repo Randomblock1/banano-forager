@@ -368,6 +368,7 @@ app.post('/', (req, res) => {
         message: 'Faucet is currently dry! Please consider donating.'
       })
       loggingUtil('ERROR', 'CRITICAL', 'Faucet is dry!')
+      return
     }
     const ip = getRealIp(req)
     if (err !== null) {
