@@ -365,7 +365,7 @@ app.post('/', (req, res) => {
   form.parse(req, async (err, fields, files: any) => {
     if (parseFloat(bananoBalance) <= settings.maxReward) {
       res.render('fail', {
-        message: 'Faucet is currently dry! Please consider donating.'
+        errorReason: 'Faucet is currently dry! Please consider donating.'
       })
       loggingUtil('ERROR', 'CRITICAL', 'Faucet is dry!')
       return
