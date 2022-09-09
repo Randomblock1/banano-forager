@@ -363,9 +363,9 @@ app.post('/', (req, res) => {
   const form = formidable(formidableOptions)
   // runs every time someone submits a form
   form.parse(req, async (err, fields, files: any) => {
-    if (parseFloat(bananoBalance) <= settings.maxReward) {
+    if (parseFloat(bananoBalance) < settings.maxReward) {
       res.render('fail', {
-        errorReason: 'Faucet is currently dry! Please consider donating.'
+        errorReason: 'Faucet is currently dry! Please consider donating to ' + settings.address + ' to keep the faucet running.'
       })
       loggingUtil('ERROR', 'CRITICAL', 'Faucet is dry!')
       return
