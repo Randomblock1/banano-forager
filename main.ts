@@ -223,11 +223,14 @@ async function receiveDonations (): Promise<object> {
     null,
     'ban_'
   )
-  if (response.receiveCount > 0) {
-    console.log(response.receiveMessage)
+  if (response.receiveCount !== 0) {
+    loggingUtil('INFO', 'DONATION', response.receiveMessage)
     statsDB.updateOne({ type: 'totals' }, { $inc: { totalDonations: 1 } }, { upsert: true })
     await updateBalance()
-    console.log('Balance updated to ' + bananoBalance)
+    loggingUtil('INFO', 'DONATION', 'Balance updated to ' + bananoBalance)
+  } else if (response.pendingCount !== 0) {
+    // maybe fix receiving but not updating balance?
+    await updateBalance()
   }
   return response
 }
@@ -292,15 +295,13 @@ const publicKey = await bananojs.bananoUtil.getPublicKey(settings.privateKey)
 const bananoAccount = bananojs.bananoUtil.getAccount(publicKey, 'ban_')
 const representative = 'ban_19potasho7ozny8r1drz3u3hb3r97fw4ndm4hegdsdzzns1c3nobdastcgaa' // JungleTV representative
 
-await updateBalance()
-
 // load mobilenet model once ready
 const mobilenetModel = await tensorflowGetReady().then(_ => {
   return mobilenet.load({ version: 2, alpha: 1 })
 })
 
 // receive donations every 15 minutes
-const task = new AsyncTask(
+const receiveDonationsTask = new AsyncTask(
   'receive donations',
   async () => {
     try {
@@ -310,8 +311,7 @@ const task = new AsyncTask(
     }
   })
 
-const job = new SimpleIntervalJob({ minutes: 15 }, task)
-scheduler.addSimpleIntervalJob(job)
+scheduler.addSimpleIntervalJob(new SimpleIntervalJob({ minutes: 15, runImmediately: true }, receiveDonationsTask))
 
 console.log('Balance: ' + await updateBalance())
 
@@ -597,6 +597,7 @@ app.listen(port, () => {
 })
 
 process.on('SIGINT', async () => {
+  scheduler.stop()
   console.log('\nGracefully closing database connections...')
   await dbClient.close()
   console.log('Done.')
