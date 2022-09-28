@@ -1,6 +1,6 @@
 import formidable from 'formidable'
 import express from 'express'
-import fs from 'fs'
+// import fs from 'fs'
 import bananojs from '@bananocoin/bananojs'
 import mobilenet from '@tensorflow-models/mobilenet'
 import { ready as tensorflowGetReady } from '@tensorflow/tfjs-node'
@@ -12,6 +12,8 @@ import { verify } from 'hcaptcha'
 import { MongoClient } from 'mongodb'
 import fetch from 'node-fetch'
 import sharp from 'sharp'
+import { FormData } from 'formdata-node'
+import { fileFromPath } from 'formdata-node/file-from-path'
 // DISABLED DUE TO GOOGLE RATE LIMITING
 // import axios from 'axios'
 // import google from 'googlethis'
@@ -261,14 +263,12 @@ function loggingUtil (firstParam: string, secondParam: string, mainMessage: stri
 
 async function imageLogUtil (imagePath: string) {
   if (webhookUrl !== undefined) {
-    fetch(webhookUrl,
-      {
-        headers: {
-          'Content-Type': 'multipart/form-data'
-        },
-        body: { file1: fs.createReadStream(imagePath) },
-        method: 'POST'
-      })
+    const form = new FormData()
+    form.set('file', await fileFromPath(imagePath))
+    fetch(webhookUrl, {
+      method: 'POST',
+      body: form
+    })
   }
 }
 

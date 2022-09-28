@@ -11,6 +11,7 @@
         "@types/sharp": "^0.30.5",
         "dotenv": "^16.0.1",
         "express": "^4.18.1",
+        "formdata-node": "^5.0.0",
         "formidable": "^3.2.4",
         "hcaptcha": "^0.1.1",
         "image-hash": "^5.3.1",
