@@ -92,7 +92,8 @@ console.log(
 const formidableOptions: formidable.Options = {
   hashAlgorithm: 'sha256',
   keepExtensions: true,
-  maxFileSize: 5 * 1024 * 1024, // 5MB
+  maxFileSize: 10 * 1024 * 1024, // 10MB
+  minFileSize: 750 * 1042, // 750KB
   filter: filterFunction
 }
 
@@ -143,7 +144,7 @@ async function isProxy (ip: string): Promise<boolean> {
   const body = await response.text()
   const json = JSON.parse(body)
   const proxyData = json.result
-  if (proxyData > 0.99) {
+  if (proxyData > 0.98) {
     return true
   } else {
     return false
@@ -255,6 +256,19 @@ function loggingUtil (firstParam: string, secondParam: string, mainMessage: stri
   console.log(`${new Date().toISOString()} | ${firstParam}: ${secondParam}: ${mainMessage}`)
   if (webhookUrl !== undefined) {
     sendWebhook(webhookUrl, `${firstParam}: ${secondParam}: ${mainMessage}`)
+  }
+}
+
+async function imageLogUtil (imagePath: string) {
+  if (webhookUrl !== undefined) {
+    fetch(webhookUrl,
+      {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        },
+        body: { file1: fs.createReadStream(imagePath) },
+        method: 'POST'
+      })
   }
 }
 
@@ -544,6 +558,7 @@ app.post('/', (req, res) => {
                 statsDB.updateOne({ type: 'totals' }, { $inc: { totalSent: reward, totalClaims: 1 }, $set: { lastClaim: new Date() } }, { upsert: true })
                 ipDB.updateOne({ ip }, { $inc: { totalSent: reward, totalClaims: 1 }, $set: { lastClaim: new Date() } }, { upsert: true })
                 loggingUtil(ip, claimAddress, `Sent ${reward.toString()} banano with TXID ${txid}`)
+                imageLogUtil(files.image[0].filepath)
                 res.render('success', {
                   transactionId: txid,
                   address: claimAddress,
@@ -562,7 +577,7 @@ app.post('/', (req, res) => {
               claimsDB.updateOne({ address: claimAddress }, { $inc: { fails: 1 } }, { upsert: true })
               res.render('not-banana', { errorReason: 'Not a banana. Results: ' + JSON.stringify(classificationResult) })
             }
-            hashDB.insertOne({ hash: data, original: true, classification: classificationResult })
+            hashDB.insertOne({ hash: data, original: true, classification: classificationResult, filename: files.image[0].newFilename })
           }).catch((err) => {
             // catch imageClassification errors
             loggingUtil(ip, claimAddress, `Error classifying image: ${err}`)
@@ -578,7 +593,7 @@ app.post('/', (req, res) => {
         }
       }
       // delete after processing, even if it fails
-      fs.rmSync(files.image[0].filepath)
+      // fs.rmSync(files.image[0].filepath)
     })
   })
 })
