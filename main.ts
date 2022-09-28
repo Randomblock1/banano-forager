@@ -1,6 +1,5 @@
 import formidable from 'formidable'
 import express from 'express'
-// import fs from 'fs'
 import bananojs from '@bananocoin/bananojs'
 import mobilenet from '@tensorflow-models/mobilenet'
 import { ready as tensorflowGetReady } from '@tensorflow/tfjs-node'
@@ -9,15 +8,11 @@ import { imageHash } from 'image-hash'
 import { ToadScheduler, SimpleIntervalJob, AsyncTask } from 'toad-scheduler'
 import 'dotenv/config'
 import { verify } from 'hcaptcha'
-import { MongoClient } from 'mongodb'
+import { Collection, Document, MongoClient } from 'mongodb'
 import fetch from 'node-fetch'
 import sharp from 'sharp'
 import { FormData } from 'formdata-node'
 import { fileFromPath } from 'formdata-node/file-from-path'
-// DISABLED DUE TO GOOGLE RATE LIMITING
-// import axios from 'axios'
-// import google from 'googlethis'
-// import FormData from 'form-data'
 
 const scheduler = new ToadScheduler()
 const app = express()
@@ -29,20 +24,18 @@ const mongoUrl = process.env.MONGO_URL
 if (!mongoUrl) {
   throw new Error('MONGO_URL is not set')
 }
-const dbClient = new MongoClient(mongoUrl)
-await dbClient.connect()
-const hashDB = dbClient.db('banano-forager').collection('hashes')
-const claimsDB = dbClient.db('banano-forager').collection('addresses')
-const statsDB = dbClient.db('banano-forager').collection('stats')
-const ipDB = dbClient.db('banano-forager').collection('ips')
+const dbClient = await new MongoClient(mongoUrl).connect()
+const mongoDB = dbClient.db('banano-forager')
+const hashDB = mongoDB.collection('hashes')
+const claimsDB = mongoDB.collection('addresses')
+const statsDB = mongoDB.collection('stats')
+const ipDB = mongoDB.collection('ips')
+const blacklistDB = mongoDB.collection('blacklist')
 
 const hcaptchaSiteKey = process.env.HCAPTCHA_SITE_KEY
 const hcaptchaSecret = process.env.HCAPTCHA_SECRET_KEY
 
 const webhookUrl = process.env.WEBHOOK_URL
-
-// copied from prussia's banano faucet
-const blacklist = ['ban_3qyp5xjybqr1go8xb1847tr6e1ujjxdrc4fegt1rzhmcmbtntio385n35nju', 'ban_1yozd3rq15fq9eazs91edxajz75yndyt5bpds1xspqfjoor9bdc1saqrph1w', 'ban_1894qgm8jym5xohwkngsy5czixajk5apxsjowi83pz9g6zrfo1nxo4mmejm9', 'ban_38jyaej59qs5x3zim7t4pw5dwixibkjw48tg1t3i9djyhtjf3au7c599bmg3', 'ban_3a68aqticd6wup99zncicrbkuaonypzzkfmmn66bxexfmw1ckf3ewo3fmtm9', 'ban_3f9j7bw9z71gwjo7bwgpfcmkg7k8w7y3whzc71881yrmpwz9e6c8g4gq4puj', 'ban_3rdjcqpm3j88bunqa3ge69nzdzx5a6nqumzc4ei3t1uwg3ciczw75xqxb4ac', 'ban_3w5uwibucuxh9psbpi9rp9qnikh9gywjc94cyp5rxirzsr5mtk5gbr5athoc', 'ban_1pi3knekobemmas387mbq44f9iq9dzfmuodoyoxbs38eh5yqtjmy1imxop6m', 'ban_1awbxp5y7r97hmc1oons5z5nirgyny7jenxcn33ehhzjmotf1pnuoopousur', 'ban_1benisxqto7mbod6ff6u6nugr4ehp5r47n3eyk5ki1m4z4j55txcgai8g8m4', 'ban_3qbwjgtdu7ii67adc1496nkj5wrs5fu117dz4wnkf4h1d6ob35ujh81w9kwm', 'ban_1td89xi8akr7nui9yr5i3gnzcoimkyi5bawmpht7hm164q4qyh7xgytwzs58', 'ban_3xt9hkrtdsud3ahnxknf8cnmsposoq5yktf5dtgxyrtqqiucr3h675rsha5c', 'ban_1r5ms5i5q4g5eh4xafnq4yr9o8rssfpifmg93g8khf8hchbuuhnfxm5mbk3t']
 
 if (!hcaptchaSiteKey) {
   throw new Error('HCAPTCHA_SITE_KEY is not set')
@@ -198,17 +191,6 @@ function rawToBan (raw: number): number {
   return Number(raw / 100000000000000000000000000000)
 }
 
-// async function uploadFile (fileToUpload: string) {
-//   const form = new FormData()
-//   form.append('file', fs.createReadStream(fileToUpload))
-//   form.append('expires', '5m')
-//   form.append('maxDownloads', '1')
-//   form.append('autoDelete', 'true')
-
-//   const uploadResponse = await axios.postForm('https://file.io', form)
-//   return 'https://file.io/' + uploadResponse.data.key
-// }
-
 let bananoBalance: string
 
 /**
@@ -281,13 +263,12 @@ async function isAddressTooNew (accountHistory: any): Promise<boolean> {
 }
 
 // copied from https://github.com/jetstream0/Banano-Faucet/blob/master/banano.js
-async function isAddressBanned (address: string, accountHistory: any, bannedAddresses: string[]): Promise<boolean> {
-  if (bannedAddresses.includes(address)) return true
+async function isAddressBanned (address: string, accountHistory: any, blacklistDB: Collection<Document>): Promise<boolean> {
+  const bannedAddress = await blacklistDB.findOne({ address })
+  if (bannedAddress !== null) return true
   if (accountHistory.history) {
     for (let i = 0; i < accountHistory.history.length; i++) {
-      if (bannedAddresses.includes(accountHistory.history[i].account)) {
-        return true
-      }
+      if (blacklistDB.findOne({ address: accountHistory.history[i].account }) !== null) return true
     }
   }
   return false
@@ -363,7 +344,7 @@ app.get('/stats', async (req, res) => {
     totalDonations: stats.totalDonations,
     totalAddresses: addressCount,
     totalVisits: stats.visits,
-    bannedAddresses: blacklist
+    bannedAddresses: await blacklistDB.estimatedDocumentCount()
   })
 })
 
@@ -460,7 +441,7 @@ app.post('/', (req, res) => {
       loggingUtil(ip, claimAddress, 'Address is too new')
       return
     }
-    if (await isAddressBanned(claimAddress, accountHistory, blacklist)) {
+    if (await isAddressBanned(claimAddress, accountHistory, blacklistDB)) {
       res.render('fail', {
         errorReason: 'Address blacklisted. If this is in error, please contact me.'
       })
@@ -521,19 +502,6 @@ app.post('/', (req, res) => {
         claimsDB.updateOne({ address: claimAddress }, { $inc: { fails: 1 } }, { upsert: true })
         loggingUtil(ip, claimAddress, 'Duplicate image')
       } else {
-        // DISABLED BECAUSE GOOGLE RATE LIMITS IMAGE SEARCHES A LOT
-        // const tempUrl = await uploadFile(files.image[0].filepath)
-        // const imageMatches = await google.search(tempUrl, { ris: true })
-        // if (imageMatches.results.length > 0) {
-        //   hashDB.insertOne({ hash: data, original: false })
-        //   res.render('fail', {
-        //     errorReason: 'Image is from the internet. Is it really that hard to photograph a banana?'
-        //   })
-        //   statsDB.updateOne({ type: 'totals' }, { $inc: { totalUnoriginal: 1 } }, { upsert: true })
-        //   claimsDB.updateOne({ address: claimAddress }, { $inc: { fails: 1 } }, { upsert: true })
-        //   loggingUtil(ip, claimAddress, 'Unoriginal image')
-        // } else {
-        // convert image to tensor
         try {
           const tensorImage = decodeImage(imageBuffer, 3, undefined, false)
           // the fun stuff!
@@ -589,11 +557,8 @@ app.post('/', (req, res) => {
             errorReason: 'Invalid image. Must be valid PNG or JPEG.'
           })
           loggingUtil(ip, claimAddress, 'Invalid image. ' + err)
-          // }
         }
       }
-      // delete after processing, even if it fails
-      // fs.rmSync(files.image[0].filepath)
     })
   })
 })
@@ -601,14 +566,14 @@ app.post('/', (req, res) => {
 app.use((req, res) => {
   res.status(404)
   res.render('fail', {
-    errorReason: '404: Page not found'
+    errorReason: 'Error 404: Page not found'
   })
 })
 
 // GO TIME! //
 const port = process.env.PORT || 8080
 app.listen(port, () => {
-  console.log('Server listening on http://localhost:' + port + '...\n')
+  console.log('Server listening on http://localhost:' + port + ' ...\n')
 })
 
 process.on('SIGINT', async () => {
