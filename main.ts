@@ -264,11 +264,10 @@ async function isAddressTooNew (accountHistory: any): Promise<boolean> {
 
 // copied from https://github.com/jetstream0/Banano-Faucet/blob/master/banano.js
 async function isAddressBanned (address: string, accountHistory: any, blacklistDB: Collection<Document>): Promise<boolean> {
-  const bannedAddress = await blacklistDB.findOne({ address })
-  if (bannedAddress !== null) return true
+  if (await blacklistDB.findOne({ address }) !== null) return true
   if (accountHistory.history) {
     for (let i = 0; i < accountHistory.history.length; i++) {
-      if (blacklistDB.findOne({ address: accountHistory.history[i].account }) !== null) return true
+      if (await blacklistDB.findOne({ address: accountHistory.history[i].account }) !== null) return true
     }
   }
   return false
@@ -483,7 +482,16 @@ app.post('/', (req, res) => {
     }
 
     // process image
-    const imageBuffer = await sharp(files.image[0].filepath, { failOn: 'none' }).resize(224, 224, { fit: 'contain' }).toBuffer()
+    let imageBuffer: Buffer
+    try {
+      imageBuffer = await sharp(files.image[0].filepath, { failOn: 'none' }).resize(224, 224, { fit: 'contain' }).toBuffer()
+    } catch (err) {
+      res.render('fail', {
+        errorReason: 'Error processing image: ' + err
+      })
+      loggingUtil(ip, claimAddress, 'Error processing image: ' + err)
+      return
+    }
     imageHash({ data: imageBuffer }, 16, true, async (error: Error, data: string) => {
       if (error) {
         res.render('fail', {
