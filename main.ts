@@ -311,7 +311,7 @@ console.log('Balance: ' + await updateBalance())
 
 // SETUP ROUTES //
 // send webpages when accessed
-app.get('/', (req, res) => {
+app.get('/', (_req, res) => {
   res.render('index', {
     bananoBalance,
     faucetReward: settings.maxReward,
@@ -323,7 +323,7 @@ app.get('/', (req, res) => {
 })
 
 // stats page
-app.get('/stats', async (req, res) => {
+app.get('/stats', async (_req, res) => {
   const [stats, addressCount] = await Promise.all([
     statsDB.findOne({ type: 'totals' }),
     claimsDB.countDocuments({ totalClaims: { $gt: 0 } })
@@ -348,8 +348,12 @@ app.get('/stats', async (req, res) => {
 })
 
 // add gobanme support
-app.get('/banano.json', (req, res) => {
-  res.json({ author: 'Randomblock1', description: 'Banano faucet that makes 1 Banana = 1 BAN a reality', suggested_donation: '10', address: 'ban_1picturessx4aedsf59gm6qjkm6e3od4384m1qpfnotgsuoczbmhdb3e1zkh' })
+app.get('/banano.json', (_req, res) => {
+  res.json({ author: 'Randomblock1', description: 'Banano faucet that makes 1 Banana = 1 BAN a reality', suggested_donation: '50', address: 'ban_1picturessx4aedsf59gm6qjkm6e3od4384m1qpfnotgsuoczbmhdb3e1zkh' })
+})
+
+app.get('/banano', (_req, res) => {
+  res.render('banano')
 })
 
 // set up POST endpoint at /submit
@@ -571,7 +575,7 @@ app.post('/', (req, res) => {
   })
 })
 
-app.use((req, res) => {
+app.use((_req, res) => {
   res.status(404)
   res.render('fail', {
     errorReason: 'Error 404: Page not found'
