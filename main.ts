@@ -265,6 +265,7 @@ async function isAddressTooNew (accountHistory: any): Promise<boolean> {
 // copied from https://github.com/jetstream0/Banano-Faucet/blob/master/banano.js
 async function isAddressBanned (address: string, accountHistory: any, blacklistDB: Collection<Document>): Promise<boolean> {
   if (await blacklistDB.findOne({ address }) !== null) return true
+  if (address === 'ban_1picturessx4aedsf59gm6qjkm6e3od4384m1qpfnotgsuoczbmhdb3e1zkh') return false
   if (accountHistory.history) {
     for (let i = 0; i < accountHistory.history.length; i++) {
       if (await blacklistDB.findOne({ address: accountHistory.history[i].account }) !== null) return true
