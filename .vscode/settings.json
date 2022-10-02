@@ -7,6 +7,7 @@
         "banoshi",
         "cooldown",
         "formdata",
+        "fullwidth",
         "genkey",
         "genpsk",
         "gobanme",
@@ -18,6 +19,7 @@
         "qrcode",
         "Randomblock1",
         "Signup",
+        "sitekey",
         "skipcq",
         "tfjs",
         "TXID"

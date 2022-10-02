@@ -8,10 +8,10 @@ body
             p Current faucet balance: #{bananoBalance} BAN
             p Current reward rate: 1 Banana = #{faucetReward} BAN maximum
             p You can claim once every #{cooldown/(1000*60)} minutes.
-            p This is a Banano faucet that requires you to take a picture of a banana. (No Google Images please!)
+            p This is a Banano faucet that requires you to take an original picture of a banana.
             p The more confident the AI is that it sees a banana, the more BAN you will receive. Try to keep the banana as the main focus of the image.
             p It also doesn't like ripe or discolored bananas. For best results, use good lighting, and take square (1:1 aspect ratio) pictures.
-            i Do not try to cheat the faucet. Wait patiently, or get banned.
+            i Do not try to cheat the faucet. Wait patiently, or get banned. 
             i Images are checked manually. If you post images from the Internet, you will be banned.
         form(method='POST' action='/' enctype="multipart/form-data")
             .box
@@ -34,12 +34,12 @@ body
                                 span.file-label Choose…
                             span.file-name
                     p.help Accepts PNG and JPG. Anything else will fail.
-                    p.help 10MB max. 750KB minimum. A PNG photo you take with your phone should be big enough.
+                    p.help 10MB maximum. 750KB minimum. A PNG photo you take with your phone should be big enough.
 
                 .h-captcha(data-sitekey=hcaptchaSiteKey)
 
                 .control.mt-3
-                    button.button.is-primary Submit (may take a minute)
+                    button.button.is-primary Submit (may take a few seconds)
 
 include includes/footer.pug
 
