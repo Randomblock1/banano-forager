@@ -39,6 +39,10 @@ const webhookUrl = process.env.WEBHOOK_URL
 
 const email = process.env.EMAIL
 
+if (!email) {
+  throw new Error('EMAIL is not set')
+}
+
 if (!hcaptchaSiteKey) {
   throw new Error('HCAPTCHA_SITE_KEY is not set')
 }
