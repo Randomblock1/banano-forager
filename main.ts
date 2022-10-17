@@ -37,6 +37,8 @@ const hcaptchaSecret = process.env.HCAPTCHA_SECRET_KEY
 
 const webhookUrl = process.env.WEBHOOK_URL
 
+const email = process.env.EMAIL
+
 if (!hcaptchaSiteKey) {
   throw new Error('HCAPTCHA_SITE_KEY is not set')
 }
@@ -129,7 +131,7 @@ function getRealIp (req: express.Request): string {
  * @returns boolean
  */
 async function isProxy (ip: string): Promise<boolean> {
-  const response = await fetch('https://check.getipintel.net/check.php?ip=' + ip + '&format=json', {
+  const response = await fetch('https://check.getipintel.net/check.php?ip=' + ip + '&format=json&contact=' + email, {
     headers: {
       accept: '*/*'
     },
@@ -139,6 +141,9 @@ async function isProxy (ip: string): Promise<boolean> {
   const body = await response.text()
   const json = JSON.parse(body)
   const proxyData = json.result
+  if (proxyData < 0) {
+    loggingUtil('ERROR', 'PRIORITY', 'Proxy check failed for IP ' + ip + ', response: ' + JSON.stringify(json))
+  }
   if (proxyData > 0.98) {
     return true
   } else {
@@ -535,9 +540,10 @@ app.post('/', (req, res) => {
                 'ban_'
               ).then((txid) => {
                 // log success
-                claimsDB.updateOne({ address: claimAddress }, { $inc: { totalSent: reward, totalClaims: 1 }, $set: { address: claimAddress, lastClaim: new Date() } }, { upsert: true })
-                statsDB.updateOne({ type: 'totals' }, { $inc: { totalSent: reward, totalClaims: 1 }, $set: { lastClaim: new Date() } }, { upsert: true })
-                ipDB.updateOne({ ip }, { $inc: { totalSent: reward, totalClaims: 1 }, $set: { lastClaim: new Date() } }, { upsert: true })
+                const lastClaim = new Date()
+                claimsDB.updateOne({ address: claimAddress }, { $inc: { totalSent: reward, totalClaims: 1 }, $set: { address: claimAddress, lastClaim } }, { upsert: true })
+                statsDB.updateOne({ type: 'totals' }, { $inc: { totalSent: reward, totalClaims: 1 }, $set: { lastClaim } }, { upsert: true })
+                ipDB.updateOne({ ip }, { $inc: { totalSent: reward, totalClaims: 1 }, $set: { lastClaim } }, { upsert: true })
                 loggingUtil(ip, claimAddress, `Sent ${reward.toString()} banano with TXID ${txid}`)
                 imageLogUtil(files.image[0].filepath)
                 res.render('success', {
