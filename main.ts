@@ -371,14 +371,14 @@ app.post('/', (req, res) => {
   const form = formidable(formidableOptions)
   // runs every time someone submits a form
   form.parse(req, async (err, fields, files: any) => {
+    const ip = getRealIp(req)
     if (parseFloat(bananoBalance) < settings.maxReward) {
+      loggingUtil('ERROR', 'CRITICAL',  ip + ' ' + JSON.stringify(fields.address) + 'tried to claim, but faucet is dry!')
       res.render('fail', {
         errorReason: 'Faucet is currently dry! Please consider donating to ' + settings.address + ' to keep the faucet running.'
       })
-      loggingUtil('ERROR', 'CRITICAL', 'Faucet is dry!')
       return
     }
-    const ip = getRealIp(req)
     if (err !== null) {
       res.render('fail', {
         errorReason: 'Error parsing form: ' + err
@@ -421,6 +421,13 @@ app.post('/', (req, res) => {
     }
 
     // verify captcha
+    if (fields['h-captcha-response'] === undefined) {
+      res.render('fail', {
+        errorReason: 'Please complete the captcha.'
+      })
+      return
+    }
+
     const captchaResponse = fields['h-captcha-response'][0]
     const captchaValid = await verify(hcaptchaSecret, captchaResponse)
       .then((data) => {
