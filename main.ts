@@ -373,7 +373,7 @@ app.post('/', (req, res) => {
   form.parse(req, async (err, fields, files: any) => {
     const ip = getRealIp(req)
     if (parseFloat(bananoBalance) < settings.maxReward) {
-      loggingUtil('ERROR', 'CRITICAL',  ip + ' ' + JSON.stringify(fields.address) + 'tried to claim, but faucet is dry!')
+      loggingUtil('ERROR', 'CRITICAL',  `${ip}:${JSON.stringify(fields.address)} tried to claim, but faucet is dry!`)
       res.render('fail', {
         errorReason: 'Faucet is currently dry! Please consider donating to ' + settings.address + ' to keep the faucet running.'
       })
