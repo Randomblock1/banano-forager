@@ -7,7 +7,6 @@ import express from 'express';
 import { FormData } from 'formdata-node';
 import { fileFromPath } from 'formdata-node/file-from-path';
 import formidable from 'formidable';
-import { verify } from 'hcaptcha';
 import { Collection, Document, MongoClient } from 'mongodb';
 import sharp from 'sharp';
 import phash from 'sharp-phash';
@@ -31,8 +30,8 @@ const statsDB = mongoDB.collection('stats');
 const ipDB = mongoDB.collection('ips');
 const blacklistDB = mongoDB.collection('blacklist');
 
-const hcaptchaSiteKey = process.env.HCAPTCHA_SITE_KEY;
-const hcaptchaSecret = process.env.HCAPTCHA_SECRET_KEY;
+const recaptchaSiteKey = process.env.RECAPTCHA_SITE_KEY;
+const recaptchaSecret = process.env.RECAPTCHA_SECRET_KEY;
 
 const webhookUrl = process.env.WEBHOOK_URL;
 
@@ -42,12 +41,12 @@ if (!email) {
   throw new Error('EMAIL is not set');
 }
 
-if (!hcaptchaSiteKey) {
-  throw new Error('HCAPTCHA_SITE_KEY is not set');
+if (!recaptchaSiteKey) {
+  throw new Error('RECAPTCHA_SITE_KEY is not set');
 }
 
-if (!hcaptchaSecret) {
-  throw new Error('HCAPTCHA_SECRET_KEY is not set');
+if (!recaptchaSecret) {
+  throw new Error('RECAPTCHA_SECRET_KEY is not set');
 }
 
 const settings = {
@@ -98,6 +97,25 @@ const formidableOptions: formidable.Options = {
 };
 
 // FUNCTION DECLARATIONS //
+async function verify(secret: string, response: string, ip: string): Promise<any> {
+  const result = await fetch('https://www.google.com/recaptcha/api/siteverify', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded'
+    },
+    body: `secret=${secret}&response=${response}&remoteip=${ip}`
+  })
+  interface RecaptchaResponse {
+    success: boolean;
+    challenge_ts: string;
+    hostname: string;
+    'error-codes': string[];
+  }
+  // @ts-expect-error
+  const json: RecaptchaResponse = await result.json();
+  return json.success;
+}
+
 /**
  * Make sure banano address is valid
  * @param address Banano address
@@ -357,7 +375,7 @@ app.get('/', (_req, res) => {
     faucetReward: settings.maxReward,
     faucetAddress: settings.address,
     cooldown: settings.cooldownMs,
-    hcaptchaSiteKey
+    recaptchaSiteKey: recaptchaSiteKey
   });
   statsDB.updateOne({ type: 'totals' }, { $inc: { visits: 1 } }, { upsert: true });
 });
@@ -450,19 +468,15 @@ app.post('/', (req, res) => {
     }
 
     // verify captcha
-    if (fields['h-captcha-response'] === undefined) {
+    if (fields['g-recaptcha-response'] === undefined) {
       res.render('fail', {
         errorReason: 'Please complete the captcha.'
       });
       return;
     }
 
-    const captchaResponse = fields['h-captcha-response'][0];
-    const captchaValid = await verify(hcaptchaSecret, captchaResponse)
-      .then((data) => {
-        return data.success;
-      })
-      .catch(console.error);
+    const captchaResponse = fields['g-recaptcha-response'][0];
+    const captchaValid = await verify(recaptchaSecret, captchaResponse, ip)
 
     if (captchaValid !== true) {
       res.render('fail', {

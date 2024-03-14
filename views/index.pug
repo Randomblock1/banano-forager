@@ -1,5 +1,5 @@
 include includes/head.pug
-script(src="https://js.hcaptcha.com/1/api.js" async defer)
+script(src="https://www.google.com/recaptcha/api.js" async defer)
 body
     .section.container
         .content
@@ -36,7 +36,7 @@ body
                     p.help Accepts PNG and JPG. Anything else will fail.
                     p.help 10MB maximum. 750KB minimum. A PNG photo you take with your phone should be big enough.
 
-                .h-captcha(data-sitekey=hcaptchaSiteKey)
+                .g-recaptcha(data-sitekey=recaptchaSiteKey)
 
                 .control.mt-3
                     button.button.is-primary Submit (may take a few seconds)
